@@ -1,3 +1,7 @@
+# TODO: Possibly switch to TypeForm in py3.15?
+type AnnotationType = object
+
+
 def click_command_name(funcname: str) -> str:
     """Normalise function name to command name using click rules
 

@@ -7,6 +7,7 @@ import inspect
 import typing
 from dataclasses import dataclass, field
 
+import click
 from click._utils import UNSET
 
 from clickify import utils
@@ -25,6 +26,9 @@ class ParamInfo:
     is_positional: bool = False
     is_varargs: bool = False
     is_required: bool = False
+
+    # nargs: A value of -1 should be converted to multiple=True for options.
+    nargs: int | None = None
 
     default: typing.Any | typing.Literal[UNSET] = UNSET
     help: str | None = None
@@ -45,8 +49,7 @@ class ParamInfo:
         docinfo: DocInfo,
         before_varargs: bool = False,
     ) -> typing.Self:
-        """Construct arginfo from parameter definition.
-        Doesn't include info parsed from docstring.
+        """Construct arginfo from parameter definition + docstring
 
         Arguments:
             param:
@@ -71,11 +74,12 @@ class ParamInfo:
             case inspect.Parameter.VAR_KEYWORD:
                 raise Exception("**kwargs not supported")
             case inspect.Parameter.VAR_POSITIONAL:
-                arginfo.is_varargs = True
+                arginfo.is_varargs = True  # Needed?
                 arginfo.is_positional = True
                 arginfo.is_argument = True
                 arginfo.is_required = False
                 arginfo.annotation = list[arginfo.annotation]  # type: ignore
+                arginfo.nargs = -1
                 assert arginfo.default is UNSET
             case inspect.Parameter.POSITIONAL_ONLY | _ if before_varargs:
                 # Params before *args don't get marked as POSITIONAL_ONLY, even though they effectively are.
@@ -95,22 +99,64 @@ class ParamInfo:
 
         return arginfo
 
+    def to_click_parameter(
+        self,
+        click_type: click.ParamType,
+        option_specific_opts: dict[str, typing.Any] | None = None,
+        **kwargs: typing.Any,
+    ):
+        """Create a click parameter from this arg, with potential overrides
+
+        Arguments:
+            click_type:  The click.ParamType to use
+            option_specific_opts:
+                And extra parameters, to be used only when this is a click.Option, rather than argument
+            kwargs:
+                Any other parameters are passed to the click.Option/Argument constructor, and will
+                override any defaults set on the ParamInfo object.
+        """
+        cls: type[click.Parameter] = click.Argument if self.is_argument else click.Option
+        opts: dict[str, typing.Any] = {"required": self.is_required, "help": self.help}
+
+        # default: typing.Any | typing.Literal[UNSET] = UNSET
+        # help: str | None = None
+        # short_decls: list[str] = field(default_factory=list)
+        # long_decls: list[str] = field(default_factory=list)
+
+        # TODO: Consider how we handle Sequence[T]
+        # transform arginfo?
+
+        if self.is_argument:
+            cls = click.Argument
+            if self.nargs is not None:
+                opts["nargs"] = self.nargs
+        else:
+            cls = click.Option
+
+            if self.nargs is not None:
+                if self.nargs == -1:
+                    opts["multiple"] = True
+                else:
+                    opts["nargs"] = self.nargs
+            if option_specific_opts:
+                opts.update(option_specific_opts)
+
+        opts.update(kwargs)
+        return cls(self.decls, type=click_type, **opts)
+
 
 @dataclass
-class FuncInfo:
-    func: typing.Callable[..., typing.Any]
+class FuncInfo[T]:
+    func: typing.Callable[..., T]
     params: list[ParamInfo]
     docinfo: DocInfo
 
     @classmethod
-    def from_func(cls, func: typing.Callable[..., typing.Any]) -> typing.Self:
+    def from_func(cls, func: typing.Callable[..., T]) -> FuncInfo:
         docinfo = DocInfo.from_obj(func)
 
         sig = inspect.signature(func)
-        before_varargs = any(
-            param.kind == inspect.Parameter.VAR_POSITIONAL
-            for param in sig.parameters.values()
-        )
+        before_varargs = any(param.kind == inspect.Parameter.VAR_POSITIONAL for param in sig.parameters.values())
 
         params: list[ParamInfo] = []
         for param in sig.parameters.values():
