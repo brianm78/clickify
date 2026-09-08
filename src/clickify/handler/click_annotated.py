@@ -11,10 +11,13 @@ from clickify.typeutil import unwrap_annotation
 
 
 # TODO: Allow ClickOpts(...) to augment an existing item?
+# NOTE: If someone annotates with a different (or no) name, won't
+# match with arg.  Should we force the same name?  Check and raise error?
 class ClickAnnotatedHandler(ParamHandler):
     def get_params(self, info: ParamInfo) -> list[click.Parameter]:
         ann, meta = unwrap_annotation(info.annotation, False, False)
         for elem in meta:
             if isinstance(elem, click.Parameter):
+                # TODO: Check name matches?
                 return [elem]
         raise NotHandled()

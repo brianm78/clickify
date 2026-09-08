@@ -37,10 +37,13 @@ class ParamInfo:
 
     @property
     def decls(self):
-        if not self.long_decls and not self.short_decls:
-            # If nothing else is defined, add an additional long option
-            return [utils.click_option_name(self.name)]
-        return self.long_decls + self.short_decls
+        decls = [self.name]
+        # Create a default long option if none defined.
+        if not self.is_argument and not self.long_decls and not self.short_decls:
+            decls.append(utils.click_option_name(self.name))
+        decls += self.long_decls
+        decls += self.short_decls
+        return decls
 
     @classmethod
     def from_param(

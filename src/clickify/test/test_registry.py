@@ -8,7 +8,7 @@ import click.types
 import pytest
 
 from clickify.funcinfo import ParamInfo
-from clickify.handler.default_registry import get_default
+from clickify.handler.default_registry import get_default_registry
 from clickify.handler.registry import HandlerRegistry, UnhandledAnnotationException
 
 # annotation, expected click type, argument_props, option_props
@@ -36,7 +36,7 @@ FAILURE_CASES: list[object] = [
 
 @pytest.fixture
 def registry() -> Generator[HandlerRegistry]:
-    yield get_default()
+    yield get_default_registry()
 
 
 @pytest.mark.parametrize("annotation,expected,expected_arg_props,expected_opt_props", TEST_CASES)

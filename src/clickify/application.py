@@ -15,6 +15,7 @@ from collections.abc import Callable
 import click
 
 from clickify.funcinfo import FuncInfo
+from clickify.handler.default_registry import get_default_registry
 from clickify.handler.registry import HandlerRegistry
 
 type Predicate = Callable[[typing.Any], bool]
@@ -26,7 +27,7 @@ class CLIApplication:
 
     def __init__(self, registry: HandlerRegistry | None = None):
         if registry is None:
-            registry = HandlerRegistry()
+            registry = get_default_registry()
             # TODO: Setup defaults
         self.registry = registry
         self.commands: list[click.Command] = []

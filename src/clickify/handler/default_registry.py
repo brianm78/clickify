@@ -7,7 +7,7 @@ from clickify.handler.sequence import SequenceParamHandler
 
 
 @cache
-def get_default() -> HandlerRegistry:
+def get_default_registry() -> HandlerRegistry:
     default_registry = HandlerRegistry()
 
     # Check for explicit Annotated[T, click.Option()] style declarations first.
