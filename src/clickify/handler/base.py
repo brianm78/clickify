@@ -4,7 +4,7 @@ from collections.abc import Callable
 
 import click
 
-from clickify.funcinfo import ParamInfo
+from clickify.func.paraminfo import ParamInfo
 
 type ParamPredicate = Callable[[ParamInfo], bool]
 type SimpleHandlerFunction = Callable[[ParamInfo], click.Parameter]

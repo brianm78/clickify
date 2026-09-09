@@ -3,7 +3,7 @@ from collections.abc import Callable
 
 import pytest
 
-from clickify.docinfo import DocInfo
+from clickify.func.docinfo import DocInfo
 
 
 @pytest.fixture

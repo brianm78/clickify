@@ -3,7 +3,7 @@ from collections.abc import Callable
 
 import click
 
-from clickify.funcinfo import FuncInfo, ParamInfo
+from clickify.func import FuncInfo, ParamInfo
 from clickify.handler.registry import HandlerRegistry
 
 

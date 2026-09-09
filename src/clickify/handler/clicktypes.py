@@ -6,7 +6,7 @@ from pathlib import Path
 import click
 import click.types
 
-from clickify.funcinfo import ParamInfo
+from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import ParamHandler
 from clickify.handler.registry import HandlerRegistry
 

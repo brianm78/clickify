@@ -5,7 +5,7 @@ from dataclasses import replace
 
 import click
 
-from clickify.funcinfo import ParamInfo
+from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import NotHandled, ParamHandler
 from clickify.handler.registry import HandlerRegistry
 from clickify.typeutil import unwrap_annotation

@@ -14,7 +14,7 @@ from collections.abc import Callable
 
 import click
 
-from clickify.funcinfo import FuncInfo
+from clickify.func.funcinfo import FuncInfo
 from clickify.handler.default_registry import get_default_registry
 from clickify.handler.registry import HandlerRegistry
 

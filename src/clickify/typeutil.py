@@ -4,19 +4,6 @@ import typing
 from clickify.utils import AnnotationType
 
 
-def get_generic(annotation: AnnotationType) -> tuple[typing.Any, typing.Any]:
-    """Check if annotation is a GenericAlias
-    If so, returns origin type and args.
-    Otherwise, both are None.
-    """
-    annotation, _meta = unwrap_annotation(annotation, resolve_generic=False)
-    if isinstance(annotation, types.GenericAlias):
-        origin = typing.get_origin(annotation)
-        args = typing.get_args(annotation)
-        return origin, args
-    return None, None
-
-
 def unwrap_annotation(
     annotation: AnnotationType,
     resolve_alias: bool = True,

@@ -1,8 +1,3 @@
-"""
-Handle parsing function signature and get information required to convert parameters
-into click, and create a wrapper.
-"""
-
 import inspect
 import typing
 from dataclasses import dataclass, field
@@ -11,7 +6,7 @@ import click
 from click._utils import UNSET
 
 from clickify import utils
-from clickify.docinfo import DocInfo
+from clickify.func.docinfo import DocInfo
 
 
 @dataclass
@@ -76,6 +71,7 @@ class ParamInfo:
         match param.kind:
             case inspect.Parameter.VAR_KEYWORD:
                 raise Exception("**kwargs not supported")
+
             case inspect.Parameter.VAR_POSITIONAL:
                 arginfo.is_varargs = True  # Needed?
                 arginfo.is_positional = True
@@ -84,10 +80,15 @@ class ParamInfo:
                 arginfo.annotation = list[arginfo.annotation]  # type: ignore
                 arginfo.nargs = -1
                 assert arginfo.default is UNSET
-            case inspect.Parameter.POSITIONAL_ONLY | _ if before_varargs:
+            case inspect.Parameter.POSITIONAL_ONLY:
                 # Params before *args don't get marked as POSITIONAL_ONLY, even though they effectively are.
                 arginfo.is_positional = True
                 arginfo.is_argument = True
+
+            case _ if before_varargs:
+                arginfo.is_positional = True
+                arginfo.is_argument = True
+
             case inspect.Parameter.POSITIONAL_OR_KEYWORD:
                 # Default to option unless no default
                 arginfo.is_argument = arginfo.default is UNSET
@@ -121,14 +122,6 @@ class ParamInfo:
         cls: type[click.Parameter] = click.Argument if self.is_argument else click.Option
         opts: dict[str, typing.Any] = {"required": self.is_required, "help": self.help}
 
-        # default: typing.Any | typing.Literal[UNSET] = UNSET
-        # help: str | None = None
-        # short_decls: list[str] = field(default_factory=list)
-        # long_decls: list[str] = field(default_factory=list)
-
-        # TODO: Consider how we handle Sequence[T]
-        # transform arginfo?
-
         if self.is_argument:
             cls = click.Argument
             if self.nargs is not None:
@@ -146,52 +139,3 @@ class ParamInfo:
 
         opts.update(kwargs)
         return cls(self.decls, type=click_type, **opts)
-
-
-@dataclass
-class FuncInfo[T]:
-    func: typing.Callable[..., T]
-    params: list[ParamInfo]
-    docinfo: DocInfo
-
-    @classmethod
-    def from_func(cls, func: typing.Callable[..., T]) -> FuncInfo:
-        docinfo = DocInfo.from_obj(func)
-
-        sig = inspect.signature(func)
-        before_varargs = any(param.kind == inspect.Parameter.VAR_POSITIONAL for param in sig.parameters.values())
-
-        params: list[ParamInfo] = []
-        for param in sig.parameters.values():
-            arginfo = ParamInfo.from_param(param, docinfo, before_varargs)
-
-            if param.kind == inspect.Parameter.VAR_POSITIONAL:
-                before_varargs = False
-
-            params.append(arginfo)
-        return cls(func=func, params=params, docinfo=docinfo)
-
-    def invoke(self, **kwargs: typing.Any) -> typing.Any:
-        """Wrapper that invokes func with required parameters after adapting
-        to match signature.
-
-        Expects all args to be passed by keyword.
-        vararge params should be a single key with a sequence value, which will
-        be passed as positional args to the function.
-        """
-        pos_args = []
-        keyword_args = {}
-        for param in self.params:
-            val = kwargs.pop(param.name, param.default)
-            if val is UNSET:
-                # Sanity check: Should be prevented earlier by click
-                raise Exception(f"Required parameter missing default: {param.name}")
-
-            if param.is_positional:
-                if param.is_varargs:
-                    pos_args += val  # flatten *args
-                else:
-                    pos_args.append(val)
-            else:
-                keyword_args[param.name] = val
-        return self.func(*pos_args, **keyword_args)

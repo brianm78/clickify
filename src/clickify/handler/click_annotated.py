@@ -5,9 +5,18 @@ Handle an Annotated[T, click.Option()] style annotation as using the given param
 import click
 import click.types
 
-from clickify.funcinfo import ParamInfo
+from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import NotHandled, ParamHandler
 from clickify.typeutil import unwrap_annotation
+
+
+class ClickOption:
+    def __init__(self, **kwargs):
+        """Augment the parameter to always pass the provided click options.
+        Eg.
+
+            val: Annotated[int, ClickOpts(min=0, max=20)] = 0
+        """
 
 
 # TODO: Allow ClickOpts(...) to augment an existing item?

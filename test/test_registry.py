@@ -7,7 +7,7 @@ from pathlib import Path
 import click.types
 import pytest
 
-from clickify.funcinfo import ParamInfo
+from clickify.func.paraminfo import ParamInfo
 from clickify.handler.default_registry import get_default_registry
 from clickify.handler.registry import HandlerRegistry, UnhandledAnnotationException
 

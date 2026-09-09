@@ -1,4 +1,4 @@
-from clickify.funcinfo import FuncInfo
+from clickify.func.funcinfo import FuncInfo
 
 
 def varargs_func(arg: str, *args: int, kw_nodef: bool, kwonly: float = True):

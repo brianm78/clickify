@@ -2,7 +2,7 @@ from collections.abc import Callable
 
 import click
 
-from clickify.funcinfo import ParamInfo
+from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import (
     NotHandled,
     ParamHandler,

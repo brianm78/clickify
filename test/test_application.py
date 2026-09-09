@@ -14,6 +14,15 @@ def basic_func(strval: str, intval: int, flag: bool = False) -> None:
     print(strval, intval, flag)
 
 
+def posargs_func(optional_arg: str = "default", /, *, required_opt: int):
+    """Test with optional arg and required option.
+    Arguments:
+        optional_arg: Optional argument
+        required_opt: [-o --opt] Required option
+    """
+    print(optional_arg, required_opt)
+
+
 def varargs_func(*vals: int, total: bool = False):
     """Varargs test
 
@@ -39,6 +48,15 @@ def test_basic():
 
     res = runner.invoke(test, ["bar", "1"])
     assert res.output == "bar 1 False\n"
+
+
+def test_posargs():
+    app = CLIApplication()
+
+    test = app.command(posargs_func)
+    runner = CliRunner()
+    res = runner.invoke(test, ["foo", "--opt", "1"])
+    assert res.output == "foo 1\n"
 
 
 def test_varargs():
