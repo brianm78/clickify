@@ -16,15 +16,15 @@ class ClickTypeHandler(ParamHandler):
         self, click_type: click.ParamType, option_specific_opts: dict[str, typing.Any] | None = None, **opts: typing.Any
     ) -> None:
         self.clicktype = click_type
-        self.option_specific_opts = option_specific_opts
-        self.opts = opts
+        self.option_opts = self.opts = opts
+
+        # Allow options that only apply on Option type (eg. flag=True on bool optionss, but not arguments)
+        if option_specific_opts is not None:
+            self.option_opts = opts | option_specific_opts
 
     def get_params(self, info: ParamInfo) -> list[click.Parameter]:
-        return [
-            info.to_click_parameter(
-                click_type=self.clicktype, option_specific_opts=self.option_specific_opts, **self.opts
-            )
-        ]
+        opts = self.opts if info.is_argument else self.option_opts
+        return [info.to_click_parameter(type=self.clicktype, **opts)]
 
 
 def register_click_types(reg: HandlerRegistry):

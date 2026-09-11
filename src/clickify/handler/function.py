@@ -8,12 +8,20 @@ from clickify.handler.registry import HandlerRegistry
 
 
 class FunctionHandler[T]:
+    """Provide args derived from function signature, and use to construct result.
+
+    Note: paraminfo is ignored: will create new parameters based on function signature
+    """
+
     def __init__(self, registry: HandlerRegistry, func: Callable[..., T]) -> None:
         self.registry = registry
         self.funcinfo = FuncInfo.from_func(func)
 
-    def get_params(self, paraminfo: ParamInfo) -> list[click.Parameter]:
+    def get_params(self, paraminfo: ParamInfo | None = None) -> list[click.Parameter]:
         """We ignore paraminfo, and create a new set of parameters here."""
+
+        # NOTE: This means we ignore stuff like nargs=-1 etc.
+        # So using in *args, ot list[Type] will fail...
 
         params = []
         # TODO: allow prefixing opts with paraminfo argname?
@@ -24,5 +32,13 @@ class FunctionHandler[T]:
         # TODO: Validate duplicates here?
         return params
 
-    def get_value(self, args: dict[str, typing.Any]) -> T:
-        return self.funcinfo.invoke(**args)
+    def get_value(self, info: ParamInfo | None, args: dict[str, typing.Any]) -> T:
+        resolved_args = {}
+        for paraminfo in self.funcinfo.params:
+            try:
+                resolved_args[paraminfo.name] = self.registry.get_param_value(paraminfo, args)
+            except Exception as ex:
+                print(ex)
+
+        print("RESOLVED", resolved_args)
+        return self.funcinfo.invoke(**resolved_args)

@@ -6,7 +6,7 @@ from dataclasses import replace
 import click
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import NotHandled, ParamHandler
+from clickify.handler.base import NotHandled, WrappingParamHandler
 from clickify.handler.registry import HandlerRegistry
 from clickify.typeutil import unwrap_annotation
 from clickify.utils import AnnotationType
@@ -15,10 +15,7 @@ from clickify.utils import AnnotationType
 excluded_sequence_types = (str, bytes, bytearray)
 
 
-class SequenceParamHandler(ParamHandler):
-    def __init__(self, registry: HandlerRegistry) -> None:
-        self.registry = registry
-
+class SequenceParamHandler(WrappingParamHandler):
     def _get_seq_type(self, annotation: AnnotationType) -> tuple[AnnotationType | None, tuple[AnnotationType, ...]]:
         """Return basetype, args"""
         basetype, meta = unwrap_annotation(annotation, resolve_generic=False)
@@ -36,7 +33,7 @@ class SequenceParamHandler(ParamHandler):
 
         return None, ()
 
-    def get_params(self, info: ParamInfo) -> list[click.Parameter]:
+    def convert_param(self, info: ParamInfo) -> ParamInfo | None:
         basetype, args = self._get_seq_type(info.annotation)
         nargs = -1
         if basetype is None:
@@ -63,8 +60,15 @@ class SequenceParamHandler(ParamHandler):
         elif len(args) != 1:
             raise NotHandled(f"Unexpected number of generic arguments for: {info.annotation}")
 
-        # Replace with a multi-arg version of underlying type and handle paramtype.
-        info = replace(info, annotation=argtype, nargs=nargs)
+        # Replace with an argument using the underlying type, but nargs/multiple set.
+        info = replace(info, annotation=argtype)
+
+        if info.is_argument or nargs != -1:
+            # Argument or fixed-length tuple option: use nargs
+            info = info.with_click_defaults(nargs=nargs)
+        else:
+            # For options, treat sequence as specify multiple
+            info = info.with_click_defaults(multiple=True)
+
         # Delegate to handler for arg type, but with nargs set.
-        res = self.registry.get_params(info)
-        return res
+        return info

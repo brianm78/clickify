@@ -18,22 +18,23 @@ def test_varargs_args():
     arg, args, kw_nodef, kwonly = func.params
     assert arg.is_positional
     assert not arg.is_varargs
-    assert arg.is_required
+    assert arg.click_defaults["required"]
     assert arg.is_argument
     assert arg.name == "arg"
     assert arg.annotation is str
 
     assert args.is_positional
     assert args.is_varargs
-    assert not args.is_required
+    assert not args.click_defaults["required"]
     assert args.is_argument
     assert args.name == "args"
     assert args.annotation == list[int]
 
     assert not kw_nodef.is_positional
     assert not kw_nodef.is_varargs
-    assert kw_nodef.is_required
+    assert kw_nodef.click_defaults["required"]
     assert not kw_nodef.is_argument
+
     assert kw_nodef.name == "kw_nodef"
     assert kw_nodef.annotation is bool
     assert kw_nodef.long_decls == []
@@ -41,7 +42,7 @@ def test_varargs_args():
 
     assert not kwonly.is_positional
     assert not kwonly.is_varargs
-    assert not kwonly.is_required
+    assert kw_nodef.click_defaults["required"]
     assert not kwonly.is_argument
     assert kwonly.default is True
     assert kwonly.name == "kwonly"

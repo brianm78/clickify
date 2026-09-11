@@ -35,12 +35,36 @@ def varargs_func(*vals: int, total: bool = False):
         print(sum(vals))
 
 
+def test_help():
+    app = CLIApplication()
+    runner = CliRunner()
+    test = app.command(basic_func)
+    res = runner.invoke(test, ["--help"])
+    assert (
+        res.output
+        == """\
+Usage: basic_func [OPTIONS] STRVAL INTVAL
+
+  test func
+
+Positional arguments:
+  STRVAL  A string value
+  INTVAL  Integer argument
+
+Options:
+  -f, --flag  Flag option
+  --help      Show this message and exit.
+"""
+    )
+
+
 def test_basic():
     app = CLIApplication()
 
     test = app.command(basic_func)
     runner = CliRunner()
     res = runner.invoke(test, ["foo", "42", "--flag"])
+    print("**", res.output)
     assert res.output == "foo 42 True\n"
 
     res = runner.invoke(test, ["foo", "42", "-f"])

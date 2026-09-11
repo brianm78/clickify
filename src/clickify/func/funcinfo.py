@@ -59,4 +59,5 @@ class FuncInfo[T]:
                     pos_args.append(val)
             else:
                 keyword_args[param.name] = val
+
         return self.func(*pos_args, **keyword_args)

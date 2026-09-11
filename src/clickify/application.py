@@ -15,11 +15,17 @@ from collections.abc import Callable
 import click
 
 from clickify.func.funcinfo import FuncInfo
+from clickify.func.paraminfo import ParamInfo
+from clickify.handler.base import ParamHandler, SimpleHandlerFunction
 from clickify.handler.default_registry import get_default_registry
+from clickify.handler.function import FunctionHandler
 from clickify.handler.registry import HandlerRegistry
+from clickify.utils import AnnotationType
 
 type Predicate = Callable[[typing.Any], bool]
 type AnyCallable = Callable[..., typing.Any]
+
+type HandlerDecorator[T: SimpleHandlerFunction | ParamHandler] = Callable[[T], T]
 
 
 class CLIApplication:
@@ -32,6 +38,24 @@ class CLIApplication:
         self.registry = registry
         self.commands: list[click.Command] = []
         self.groups: list[click.Group] = []
+
+    def register_type(self, annotation: AnnotationType) -> HandlerDecorator:
+        """Decorator to register type handler.
+        Expects a function that matches only the *exact* type annotation
+        (asside from Annoated[]) and returns a click.Parameter from the provided
+        ParamInfo object.
+        Eg.
+
+        @register_type(int)
+        def int_handler(param: ParamInfo) -> click.Parameter:
+            return param.to_click_parameter(type=click.INT)
+        """
+
+        def decorator[T: SimpleHandlerFunction | ParamHandler](func: T) -> T:
+            self.registry.register_annotation(annotation, func)
+            return func
+
+        return decorator
 
     def _make_command_decorator[TCmd: click.Command](
         self, cls: type[TCmd], name: str | None = None, **attrs: typing.Any
@@ -54,17 +78,22 @@ class CLIApplication:
             param_dict = {p.name: p for p in attr_params}
             param_dict.update({p.name: p for p in decorator_params})
 
-            funcinfo = FuncInfo.from_func(func)
+            funchandler = FunctionHandler(self.registry, func)
+            params = funchandler.get_params(None)
+            # funcinfo = FuncInfo.from_func(func)
 
-            params: list[click.Parameter] = []
-            for paraminfo in funcinfo.params:
-                # Use corresponding handler for each type
-                params += list(self.registry.get_params(paraminfo))
+            # params: list[click.Parameter] = []
+            # for paraminfo in funcinfo.params:
+            #     # Use corresponding handler for each type
+            #     params += list(self.registry.get_params(paraminfo))
+
+            def callback(**args):
+                return funchandler.get_value(None, args)
 
             # If help specified, override docstring description
             help = attrs.pop("help", None)
             if help is None:
-                help = funcinfo.docinfo.description
+                help = funchandler.funcinfo.docinfo.description
 
             cmdname = getattr(func, "__name__", None) if name is None else name
             if cmdname is None:
@@ -72,7 +101,7 @@ class CLIApplication:
 
             cmd = cls(
                 name=cmdname,
-                callback=funcinfo.invoke,
+                callback=callback,
                 params=params,
                 help=help,
                 **attrs,

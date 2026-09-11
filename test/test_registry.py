@@ -7,7 +7,9 @@ from pathlib import Path
 import click.types
 import pytest
 
+from clickify import ClickOptions
 from clickify.func.paraminfo import ParamInfo
+from clickify.handler.click_annotated import ParamNameMismatch
 from clickify.handler.default_registry import get_default_registry
 from clickify.handler.registry import HandlerRegistry, UnhandledAnnotationException
 
@@ -25,6 +27,8 @@ TEST_CASES: list[tuple[object, type[click.types.ParamType], dict[str, typing.Any
     (tuple[int, int, int], click.types.IntParamType, dict(nargs=3), dict(nargs=3)),
     (tuple[int], click.types.IntParamType, dict(nargs=1), dict(nargs=1)),
     (Sequence[int], click.types.IntParamType, dict(nargs=-1), dict(multiple=True)),
+    # ClickOptions Annotations overrides defaults.
+    (typing.Annotated[int, ClickOptions(type=str)], click.types.StringParamType, {}, {}),
 ]
 
 # Cases expected to be rejected
@@ -68,13 +72,26 @@ def test_failures(registry: HandlerRegistry, annotation: object, is_arg: bool) -
 
 
 def test_annotated(registry: HandlerRegistry):
-    """Annotation should override param.  Note: Even includes stuff like name"""
+    """Annotation should override param (including is_argument, type etc)"""
 
     annotation = typing.Annotated[str, click.Option(["--foo"], type=click.types.BOOL)]
-    info = ParamInfo("test", annotation, is_argument=True)
+    info = ParamInfo("foo", annotation, is_argument=True)
     params = registry.get_params(info)
     assert len(params) == 1
     param = params[0]
     assert isinstance(param, click.Option)
     assert param.name == "foo"
     assert isinstance(param.type, click.types.BoolParamType)
+
+
+def test_annotated_wrongname(registry: HandlerRegistry):
+    """Annotated arg must match name of param"""
+
+    annotation = typing.Annotated[str, click.Option(["--bar"], type=click.types.BOOL)]
+    info = ParamInfo("foo", annotation, is_argument=True)
+    with pytest.raises(ParamNameMismatch):
+        _ = registry.get_params(info)
+
+    annotation = typing.Annotated[str, click.Option(["foo", "--bar"], type=click.types.BOOL)]
+    info = ParamInfo("foo", annotation, is_argument=True)
+    _ = registry.get_params(info)
