@@ -7,7 +7,7 @@ import click
 import click.types
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import ParamHandler
+from clickify.handler.base import HandlerResult, ParamHandler
 from clickify.handler.registry import HandlerRegistry
 
 
@@ -22,9 +22,9 @@ class ClickTypeHandler(ParamHandler):
         if option_specific_opts is not None:
             self.option_opts = opts | option_specific_opts
 
-    def get_params(self, info: ParamInfo) -> list[click.Parameter]:
+    def get(self, info: ParamInfo) -> HandlerResult:
         opts = self.opts if info.is_argument else self.option_opts
-        return [info.to_click_parameter(type=self.clicktype, **opts)]
+        return HandlerResult(info, [info.to_click_parameter(type=self.clicktype, **opts)])
 
 
 def register_click_types(reg: HandlerRegistry):

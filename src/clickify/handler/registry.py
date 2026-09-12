@@ -1,11 +1,10 @@
 import typing
 from collections.abc import Callable
 
-import click
-
 from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import (
-    NotHandled,
+    HandlerResult,
+    NotHandledException,
     ParamHandler,
     ParamPredicate,
     SimpleHandlerFunction,
@@ -15,12 +14,6 @@ from clickify.typeutil import unwrap_annotation
 from clickify.utils import AnnotationType
 
 type HandlerDecorator[T: SimpleHandlerFunction | ParamHandler] = Callable[[T], T]
-
-
-class UnhandledAnnotationException(Exception):
-    """Raised if no handlers handle the parameter type."""
-
-    pass
 
 
 def match_annotation(annotation: AnnotationType, ignore_annotated: bool = True) -> Callable[[ParamInfo], bool]:
@@ -146,30 +139,34 @@ class HandlerRegistry:
             decorator(handler)
             return None
 
-    def get_param_value(self, info: ParamInfo, args: dict[str, typing.Any]) -> typing.Any:
-        for pred, handler in self.handlers:
-            if pred(info):
-                try:
-                    res = handler.get_value(info, args)
-                    print(f"Resolved {info.name} to {res} using {handler}: {pred(info)}")
-                    return res
-                except NotHandled:
-                    pass
+    def handle_param(self, info: ParamInfo) -> HandlerResult:
+        """Find handler for parameter, and return result.
 
-        raise UnhandledAnnotationException(f"No handlers for param {info.name} of type {info.annotation}")
-
-    def get_params(self, info: ParamInfo) -> list[click.Parameter]:
-        """Convert paraminfo into click.Parameter(s)
-
-        If no handlers found for the parameter, raise UnhandledAnnotationException
+        If not found, raises NotHandledException
         """
         for pred, handler in self.handlers:
             if pred(info):
                 try:
-                    res = list(handler.get_params(info))
-                    return res
-                except NotHandled:
+                    res = handler.get(info)
+                    if res is not None:
+                        return res
+                except NotHandledException:
                     pass
 
-        # Nothing handled it.
-        raise UnhandledAnnotationException(f"No handlers for param {info.name} of type {info.annotation}")
+        raise NotHandledException(f"No handler for param: {info} found in registry.")
+
+    # def get_params(self, info: ParamInfo) -> list[click.Parameter]:
+    #     """Convert paraminfo into click.Parameter(s)
+
+    #     If no handlers found for the parameter, raise UnhandledAnnotationException
+    #     """
+    #     for pred, handler in self.handlers:
+    #         if pred(info):
+    #             try:
+    #                 res = list(handler.get_params(info))
+    #                 return res
+    #             except NotHandled:
+    #                 pass
+
+    #     # Nothing handled it.
+    #     raise UnhandledAnnotationException(f"No handlers for param {info.name} of type {info.annotation}")

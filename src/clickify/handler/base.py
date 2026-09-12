@@ -10,11 +10,34 @@ if typing.TYPE_CHECKING:
     from clickify.handler.registry import HandlerRegistry
 
 type ParamPredicate = Callable[[ParamInfo], bool]
-type SimpleHandlerFunction = Callable[[ParamInfo], click.Parameter]
+type SimpleHandlerFunction = Callable[[ParamInfo], click.Parameter | None]
 
 
-class NotHandled(Exception):
+class NotHandledException(Exception):
     """Raise if handler doesn't handle the given type"""
+
+
+class HandlerResult[T]:
+    """Result of a handler lookup.
+
+    Defines the click.Parameters, and a function that will retrieve and return the final result.
+    Default behavior is to expect a single parameter with the paramname.
+    """
+
+    def __init__(
+        self,
+        paraminfo: ParamInfo,
+        params: list[click.Parameter],
+        callback: Callable[[dict[str, typing.Any]], T] | None = None,
+    ):
+        self.paraminfo = paraminfo
+        self.params = params
+        self._callback = callback
+
+    def callback(self, **opts: typing.Any) -> T:
+        if self._callback is not None:
+            return self._callback(opts)
+        return opts[self.paraminfo.name]
 
 
 class ParamHandler:
@@ -23,29 +46,27 @@ class ParamHandler:
     """
 
     @abstractmethod
-    def get_params(self, info: ParamInfo) -> list[click.Parameter]:
-        """Convert function paramdef to click Parameter(s)
+    def get(self, info: ParamInfo) -> HandlerResult | None:
+        """Convert function paramdef to a HandlerResult with parameters and callback.
 
-        If param cannot be handled, raise NotHandled.
-        Otherwise, return iterable of click.Parameters produced.
+        If param cannot be handled, return None, or raise NotHandled.
+        Otherwise, return HandlerResult
         """
-
-    # TODO: This is kind of clunky, and redoes work.
-    # Need to
-    def get_value(self, info: ParamInfo, args: dict[str, typing.Any]) -> typing.Any:
-        """Get value from args"""
-        return args.get(info.name)
 
 
 class SimpleParamHandler(ParamHandler):
-    """Simple case where implemented by simple function producing a single click.Parameter"""
+    """Simple case where implemented by simple callback function producing a single click.Parameter"""
 
     def __init__(self, func: SimpleHandlerFunction):
         self.func = func
 
-    def get_params(self, info: ParamInfo) -> list[click.Parameter]:
-        """Construct potentially multiple click parameters"""
-        return [self.func(info)]
+    def get(self, info: ParamInfo) -> HandlerResult | None:
+        # TODO: Add .check?
+        param = self.func(info)
+        # TODO: Allow it to return HandlerResult directly?
+        if param is not None:
+            return HandlerResult(info, [param])
+        return None
 
 
 class WrappingParamHandler(ParamHandler):
@@ -54,20 +75,16 @@ class WrappingParamHandler(ParamHandler):
     def __init__(self, registry: HandlerRegistry):
         self.registry = registry
 
+    def get(self, info: ParamInfo) -> HandlerResult | None:
+        converted_info = self.convert_param(info)
+        if converted_info is None:
+            return None
+
+        res = self.registry.handle_param(converted_info)
+        return res
+
     @abstractmethod
     def convert_param(self, info: ParamInfo) -> ParamInfo | None:
         """Implement in subclass to convert ParamInfo to another version.
         Returns None or raise NotHandled() if not handled.
         """
-
-    def get_params(self, info: ParamInfo) -> list[click.Parameter]:
-        converted_info = self.convert_param(info)
-        if converted_info is None:
-            raise NotHandled()
-        return self.registry.get_params(converted_info)
-
-    def get_value(self, info: ParamInfo, args: dict[str, typing.Any]) -> typing.Any:
-        converted_info = self.convert_param(info)
-        if converted_info is None:
-            raise NotHandled()
-        return self.registry.get_param_value(converted_info, args)

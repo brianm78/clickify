@@ -14,7 +14,6 @@ from collections.abc import Callable
 
 import click
 
-from clickify.func.funcinfo import FuncInfo
 from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import ParamHandler, SimpleHandlerFunction
 from clickify.handler.default_registry import get_default_registry
@@ -78,17 +77,14 @@ class CLIApplication:
             param_dict = {p.name: p for p in attr_params}
             param_dict.update({p.name: p for p in decorator_params})
 
+            # TODO: Override if click params specified.
+
+            # Dummy toplevel paraminfo (not actually used, except in debug output)
+            toplevel_paraminfo = ParamInfo("<toplevel>", object)
             funchandler = FunctionHandler(self.registry, func)
-            params = funchandler.get_params(None)
-            # funcinfo = FuncInfo.from_func(func)
-
-            # params: list[click.Parameter] = []
-            # for paraminfo in funcinfo.params:
-            #     # Use corresponding handler for each type
-            #     params += list(self.registry.get_params(paraminfo))
-
-            def callback(**args):
-                return funchandler.get_value(None, args)
+            handlerresult = funchandler.get(toplevel_paraminfo)
+            if handlerresult is None:
+                raise Exception("Failure in constructing toplevel function handler")
 
             # If help specified, override docstring description
             help = attrs.pop("help", None)
@@ -101,8 +97,8 @@ class CLIApplication:
 
             cmd = cls(
                 name=cmdname,
-                callback=callback,
-                params=params,
+                callback=handlerresult.callback,
+                params=handlerresult.params,
                 help=help,
                 **attrs,
             )

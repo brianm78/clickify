@@ -3,11 +3,8 @@ import typing
 from collections.abc import Sequence
 from dataclasses import replace
 
-import click
-
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import NotHandled, WrappingParamHandler
-from clickify.handler.registry import HandlerRegistry
+from clickify.handler.base import NotHandledException, WrappingParamHandler
 from clickify.typeutil import unwrap_annotation
 from clickify.utils import AnnotationType
 
@@ -37,10 +34,10 @@ class SequenceParamHandler(WrappingParamHandler):
         basetype, args = self._get_seq_type(info.annotation)
         nargs = -1
         if basetype is None:
-            raise NotHandled(f"Annotation {info.annotation} is not a sequence")
+            raise NotHandledException(f"Annotation {info.annotation} is not a sequence")
 
         if not args:
-            raise NotHandled(f"No type specified for generic params: {info.annotation}")
+            raise NotHandledException(f"No type specified for generic params: {info.annotation}")
 
         elif basetype is tuple:
             # Special case:
@@ -50,7 +47,9 @@ class SequenceParamHandler(WrappingParamHandler):
             if not (len(args) == 2 and args[1] is ...):
                 # Not [T, ...] : Check all types are the same.
                 if any(arg != args[0] for arg in args):
-                    raise NotHandled(f"tuples with differently typed arguments not supported: {info.annotation}")
+                    raise NotHandledException(
+                        f"tuples with differently typed arguments not supported: {info.annotation}"
+                    )
                 nargs = len(args)
 
             argtype = args[0]
@@ -58,7 +57,7 @@ class SequenceParamHandler(WrappingParamHandler):
             argtype = args[0]
 
         elif len(args) != 1:
-            raise NotHandled(f"Unexpected number of generic arguments for: {info.annotation}")
+            raise NotHandledException(f"Unexpected number of generic arguments for: {info.annotation}")
 
         # Replace with an argument using the underlying type, but nargs/multiple set.
         info = replace(info, annotation=argtype)

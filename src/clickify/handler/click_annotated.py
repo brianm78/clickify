@@ -9,7 +9,7 @@ import click
 import click.types
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import NotHandled, ParamHandler, WrappingParamHandler
+from clickify.handler.base import HandlerResult, NotHandledException, ParamHandler, WrappingParamHandler
 from clickify.handler.registry import HandlerRegistry
 from clickify.typeutil import unwrap_annotation
 
@@ -48,7 +48,7 @@ class ClickAnnotatedOptionsHandler(WrappingParamHandler):
 class ClickAnnotatedParameterHandler(ParamHandler):
     """Allow entirely replacing with a given Parameter."""
 
-    def get_params(self, info: ParamInfo) -> list[click.Parameter]:
+    def get(self, info: ParamInfo) -> HandlerResult:
         ann, meta = unwrap_annotation(info.annotation, False, False)
         for elem in meta:
             if isinstance(elem, click.Parameter):
@@ -56,6 +56,6 @@ class ClickAnnotatedParameterHandler(ParamHandler):
                 # TODO: Should we just set the name?  Check if this is valid.
                 if elem.name != info.name:
                     raise ParamNameMismatch("Annotated parameter does not match variable name")
-                return [elem]
+                return HandlerResult(info, [elem])
 
-        raise NotHandled()
+        raise NotHandledException()

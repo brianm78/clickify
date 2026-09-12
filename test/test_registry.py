@@ -9,9 +9,10 @@ import pytest
 
 from clickify import ClickOptions
 from clickify.func.paraminfo import ParamInfo
+from clickify.handler.base import NotHandledException
 from clickify.handler.click_annotated import ParamNameMismatch
 from clickify.handler.default_registry import get_default_registry
-from clickify.handler.registry import HandlerRegistry, UnhandledAnnotationException
+from clickify.handler.registry import HandlerRegistry
 
 # annotation, expected click type, argument_props, option_props
 TEST_CASES: list[tuple[object, type[click.types.ParamType], dict[str, typing.Any], dict[str, typing.Any]]] = [
@@ -55,20 +56,21 @@ def test_args(
 ):
     """Test basic lookups: annotation -> parameter type"""
     info = ParamInfo("test", annotation, is_argument=is_arg)
-    params = list(registry.get_params(info))
-    assert len(params) == 1
-    assert isinstance(params[0].type, expected)
+    handler = registry.handle_param(info)
+    assert handler is not None
+    assert len(handler.params) == 1
+    assert isinstance(handler.params[0].type, expected)
     prop_dict = expected_arg_props if is_arg else expected_opt_props
     for prop, val in prop_dict.items():
-        assert getattr(params[0], prop) == val
+        assert getattr(handler.params[0], prop) == val
 
 
 @pytest.mark.parametrize("annotation", FAILURE_CASES)
 @pytest.mark.parametrize("is_arg", [True, False])
 def test_failures(registry: HandlerRegistry, annotation: object, is_arg: bool) -> None:
     info = ParamInfo("test", annotation, is_argument=is_arg)
-    with pytest.raises(UnhandledAnnotationException):
-        _ = registry.get_params(info)
+    with pytest.raises(NotHandledException):
+        _ = registry.handle_param(info)
 
 
 def test_annotated(registry: HandlerRegistry):
@@ -76,9 +78,9 @@ def test_annotated(registry: HandlerRegistry):
 
     annotation = typing.Annotated[str, click.Option(["--foo"], type=click.types.BOOL)]
     info = ParamInfo("foo", annotation, is_argument=True)
-    params = registry.get_params(info)
-    assert len(params) == 1
-    param = params[0]
+    handler = registry.handle_param(info)
+    assert len(handler.params) == 1
+    param = handler.params[0]
     assert isinstance(param, click.Option)
     assert param.name == "foo"
     assert isinstance(param.type, click.types.BoolParamType)
@@ -90,8 +92,8 @@ def test_annotated_wrongname(registry: HandlerRegistry):
     annotation = typing.Annotated[str, click.Option(["--bar"], type=click.types.BOOL)]
     info = ParamInfo("foo", annotation, is_argument=True)
     with pytest.raises(ParamNameMismatch):
-        _ = registry.get_params(info)
+        _ = registry.handle_param(info)
 
     annotation = typing.Annotated[str, click.Option(["foo", "--bar"], type=click.types.BOOL)]
     info = ParamInfo("foo", annotation, is_argument=True)
-    _ = registry.get_params(info)
+    _ = registry.handle_param(info)
