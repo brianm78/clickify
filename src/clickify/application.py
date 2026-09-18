@@ -19,7 +19,6 @@ from clickify.handler.base import ParamHandler, SimpleHandlerFunction
 from clickify.handler.default_registry import get_default_registry
 from clickify.handler.function import FunctionHandler
 from clickify.handler.registry import HandlerRegistry
-from clickify.utils import AnnotationType
 
 type Predicate = Callable[[typing.Any], bool]
 type AnyCallable = Callable[..., typing.Any]
@@ -37,24 +36,7 @@ class CLIApplication:
         self.registry = registry
         self.commands: list[click.Command] = []
         self.groups: list[click.Group] = []
-
-    def register_type(self, annotation: AnnotationType) -> HandlerDecorator:
-        """Decorator to register type handler.
-        Expects a function that matches only the *exact* type annotation
-        (asside from Annoated[]) and returns a click.Parameter from the provided
-        ParamInfo object.
-        Eg.
-
-        @register_type(int)
-        def int_handler(param: ParamInfo) -> click.Parameter:
-            return param.to_click_parameter(type=click.INT)
-        """
-
-        def decorator[T: SimpleHandlerFunction | ParamHandler](func: T) -> T:
-            self.registry.register_annotation(annotation, func)
-            return func
-
-        return decorator
+        self.register = registry.register
 
     def _make_command_decorator[TCmd: click.Command](
         self, cls: type[TCmd], name: str | None = None, **attrs: typing.Any
@@ -158,6 +140,9 @@ class CLIApplication:
         else:
             decorator = self._make_command_decorator(cls, name, **attrs)
             return decorator
+
+    def __call__(self) -> None:
+        pass  # TODO: Implement
 
     # # Overloads for direct use without args vs  create a decorator
     # @typing.overload

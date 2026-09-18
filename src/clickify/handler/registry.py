@@ -1,19 +1,15 @@
+import inspect
 import typing
 from collections.abc import Callable
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import (
-    HandlerResult,
-    NotHandledException,
-    ParamHandler,
-    ParamPredicate,
-    SimpleHandlerFunction,
-    SimpleParamHandler,
-)
+from clickify.handler.base import HandlerResult, NotHandledException, ParamHandler, ParamPredicate
+from clickify.handler.function import FunctionHandler
+from clickify.types import Inferred
 from clickify.typeutil import unwrap_annotation
 from clickify.utils import AnnotationType
 
-type HandlerDecorator[T: SimpleHandlerFunction | ParamHandler] = Callable[[T], T]
+type HandlerDecorator[T: Callable[..., typing.Any]] = Callable[[T], T]
 
 
 def match_annotation(annotation: AnnotationType, ignore_annotated: bool = True) -> Callable[[ParamInfo], bool]:
@@ -53,91 +49,81 @@ class HandlerRegistry:
         # TODO: Specify priority?
         self.handlers: list[tuple[ParamPredicate, ParamHandler]] = []
 
-    # def register_annotation(self, annotation: AnnotationType, handler: ParamHandler | SimpleHandlerFunction):
-    #     """Register a handler for an exact match of the given annotation, ignoring only Annoated[] .
-
-    #     Ie. register_annotation(list[int]) will not match `list` `list[Any]` or `list[bool]`, but will match
-    #     `Annotated[list[int], ...]`
-
-    #     """
-    #     if not isinstance(handler, ParamHandler):
-    #         handler = SimpleParamHandler(handler)
-
-    #     self.handlers.append((match_annotation(annotation), handler))
+    @typing.overload
+    def register(
+        self, *, annotation: AnnotationType | Inferred = Inferred.value, multi_arg: bool | Inferred = Inferred.value
+    ) -> HandlerDecorator: ...
 
     @typing.overload
-    def register_annotation(self, annotation: AnnotationType) -> HandlerDecorator: ...
-
-    @typing.overload
-    def register_annotation(
-        self, annotation: AnnotationType, handler: ParamHandler | SimpleHandlerFunction
-    ) -> None: ...
-
-    def register_annotation(
-        self, annotation: AnnotationType, handler: ParamHandler | SimpleHandlerFunction | None = None
-    ) -> HandlerDecorator | None:
-        """Decorator to register type handler.
-
-        Handler will match on the *exact* type annotation provided.
-        May be used as a decorator, or directly by specifying the handler.
-        Eg.
-
-            registry.register_annotation(int, MyHandler())
-
-        or:
-
-            @registry.register_annotation(int)
-            def int_handler(param: ParamInfo) -> click.Parameter:
-                return param.to_click_parameter(type=click.INT)
-        """
-        return self.register_handler(match_annotation(annotation), handler=handler)
-
-    @typing.overload
-    def register_handler(self, predicate: ParamPredicate = always_check, handler: None = None) -> HandlerDecorator: ...
-
-    @typing.overload
-    def register_handler(
-        self, predicate: ParamPredicate = always_check, *, handler: ParamHandler | SimpleHandlerFunction
-    ) -> None: ...
-
-    @typing.overload
-    def register_handler(self, predicate: ParamPredicate, handler: ParamHandler | SimpleHandlerFunction) -> None: ...
-
-    def register_handler(
+    def register(
         self,
-        predicate: ParamPredicate = always_check,
-        handler: SimpleHandlerFunction | ParamHandler | None = None,
+        func: typing.Callable[..., typing.Any],
+        *,
+        annotation: AnnotationType | Inferred = Inferred.value,
+        multi_arg: bool | Inferred = Inferred.value,
+    ) -> None: ...
+
+    def register(
+        self,
+        func: typing.Callable[..., typing.Any] | None = None,
+        *,
+        annotation: AnnotationType | Inferred = Inferred.value,
+        multi_arg: bool | Inferred = Inferred.value,
+        # predicate
     ) -> HandlerDecorator | None:
-        """Register a general handler, optionally requiring a predicate to check before trying.
+        """Decorator to register a function that will handle a particular annotation.
 
-        May be used as a decorator, or directly by providing the handler.  Eg.
+        The handler function will lookup the type of any parameters, invoke the function,
+        and return the result of its value.
 
-            registry.register_handler(predicate_func, SomeHandler())
+        If the function takes only a single parameter, it will use the decls, helptext and name
+        taken from where it is used.
+        Otherwise, the function signature and docstring will be used to add new parameters
+        in any CLI function that uses them.  These parameters may not be renamed / modified by
+        that caller.  Pass multi_arg = True to force this mode to be used even for single
+        parameter functions.
 
-        Or:
-
-            @registry.register_handler()
-            def func(info: ParamInfo): ...
 
         Arguments:
+            func: The function to use
+            annotation:
+                The annotation to register.
+                If not provided, will be inferred from the return type of the function.
+            mult_iarg:
+                Force multiargument / simple mode
+                If not provided, will be inferred based on whether the function takes a single argument.
+        """
+
+        def decorator[T: Callable[..., typing.Any]](func: T) -> T:
+            handler = FunctionHandler(self, func, multi_arg)
+            handled_annotation = handler.funcinfo.return_annotation if isinstance(annotation, Inferred) else annotation
+
+            if handled_annotation is inspect._empty:
+                raise Exception("No annotation specified, and function does not provide a return annotation")
+
+            self.register_handler(handler, predicate=match_annotation(handled_annotation))
+            return func
+
+        if func is not None:
+            decorator(func)
+            return None
+
+        return decorator
+
+    def register_handler(self, handler: ParamHandler, predicate: ParamPredicate = always_check) -> None:
+        """Register a general handler, optionally requiring a predicate to check before trying.
+
+        Arguments:
+            handler:
+                The handler
             predicate:
                 Optionally a check on the parameter as to whether this handler applies.
                 If omitted, will always try the handler, skipping only if it raises NotHandled
-            handler:
-                The handler, or a function returning a Parameter.
         """
+        self.handlers.append((predicate, handler))
 
-        def decorator[T: SimpleHandlerFunction | ParamHandler](func: T) -> T:
-            handler = func if isinstance(func, ParamHandler) else SimpleParamHandler(func)
-            self.handlers.append((predicate, handler))
-            return func
-
-        if handler is None:
-            return decorator
-        else:
-            # Direct register
-            decorator(handler)
-            return None
+    def register_handler_by_annotation(self, annotation: AnnotationType, handler: ParamHandler):
+        self.register_handler(handler, predicate=match_annotation(annotation))
 
     def handle_param(self, info: ParamInfo) -> HandlerResult:
         """Find handler for parameter, and return result.
@@ -154,19 +140,3 @@ class HandlerRegistry:
                     pass
 
         raise NotHandledException(f"No handler for param: {info} found in registry.")
-
-    # def get_params(self, info: ParamInfo) -> list[click.Parameter]:
-    #     """Convert paraminfo into click.Parameter(s)
-
-    #     If no handlers found for the parameter, raise UnhandledAnnotationException
-    #     """
-    #     for pred, handler in self.handlers:
-    #         if pred(info):
-    #             try:
-    #                 res = list(handler.get_params(info))
-    #                 return res
-    #             except NotHandled:
-    #                 pass
-
-    #     # Nothing handled it.
-    #     raise UnhandledAnnotationException(f"No handlers for param {info.name} of type {info.annotation}")

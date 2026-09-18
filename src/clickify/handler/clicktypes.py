@@ -28,10 +28,10 @@ class ClickTypeHandler(ParamHandler):
 
 
 def register_click_types(reg: HandlerRegistry):
-    reg.register_annotation(bool, ClickTypeHandler(click.BOOL, dict(is_flag=True)))
-    reg.register_annotation(int, ClickTypeHandler(click.INT))
-    reg.register_annotation(float, ClickTypeHandler(click.FLOAT))
-    reg.register_annotation(str, ClickTypeHandler(click.STRING))
-    reg.register_annotation(uuid.UUID, ClickTypeHandler(click.UUID))
-    reg.register_annotation(Path, ClickTypeHandler(click.Path()))
-    reg.register_annotation(datetime.datetime, ClickTypeHandler(click.DateTime()))
+    reg.register_handler_by_annotation(bool, ClickTypeHandler(click.BOOL, dict(is_flag=True)))
+    reg.register_handler_by_annotation(int, ClickTypeHandler(click.INT))
+    reg.register_handler_by_annotation(float, ClickTypeHandler(click.FLOAT))
+    reg.register_handler_by_annotation(str, ClickTypeHandler(click.STRING))
+    reg.register_handler_by_annotation(uuid.UUID, ClickTypeHandler(click.UUID))
+    reg.register_handler_by_annotation(Path, ClickTypeHandler(click.Path()))
+    reg.register_handler_by_annotation(datetime.datetime, ClickTypeHandler(click.DateTime()))

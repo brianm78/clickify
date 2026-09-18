@@ -11,6 +11,7 @@ from click._utils import UNSET
 
 from clickify.func.docinfo import DocInfo
 from clickify.func.paraminfo import ParamInfo
+from clickify.utils import AnnotationType
 
 
 @dataclass
@@ -18,6 +19,7 @@ class FuncInfo[T]:
     func: typing.Callable[..., T]
     params: list[ParamInfo]
     docinfo: DocInfo
+    return_annotation: AnnotationType | type[inspect._empty]
 
     @classmethod
     def from_func(cls, func: typing.Callable[..., T]) -> FuncInfo:
@@ -34,7 +36,7 @@ class FuncInfo[T]:
                 before_varargs = False
 
             params.append(arginfo)
-        return cls(func=func, params=params, docinfo=docinfo)
+        return cls(func=func, params=params, docinfo=docinfo, return_annotation=sig.return_annotation)
 
     def invoke(self, **kwargs: typing.Any) -> typing.Any:
         """Wrapper that invokes func with required parameters after adapting

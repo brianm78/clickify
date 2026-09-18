@@ -40,6 +40,10 @@ class HandlerResult[T]:
         return opts[self.paraminfo.name]
 
 
+type ParamHandlerFunc = Callable[[ParamInfo], HandlerResult | None]
+
+
+# TODO: Simplify to just a callable?
 class ParamHandler:
     """Handle converting a ParamInfo object into (potentially multiple) click.Parameters,
     and taking the click provided values and producing the final type.
@@ -67,7 +71,6 @@ class SimpleParamHandler(ParamHandler):
         if param is not None:
             return HandlerResult(info, [param])
         return None
-
 
 class WrappingParamHandler(ParamHandler):
     """Wrap by modifying ParamInfo and re-looking up the annotation."""

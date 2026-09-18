@@ -16,8 +16,9 @@ class ParamInfo:
     name: str
     annotation: object
 
-    # Set to true if positional-only, or may be positional, but no default.
     is_argument: bool = False
+
+    # Note: is_positional indicates passed positionally in the function.  Not neccessarily Argument vs Option
     is_positional: bool = False
     is_varargs: bool = False
 
@@ -81,7 +82,7 @@ class ParamInfo:
                 raise Exception("**kwargs not supported")
 
             case inspect.Parameter.VAR_POSITIONAL:
-                arginfo.is_varargs = True  # Needed?
+                arginfo.is_varargs = True
                 arginfo.is_positional = True
                 arginfo.is_argument = True
                 arginfo.click_defaults["required"] = False
