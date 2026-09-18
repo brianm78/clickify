@@ -10,20 +10,14 @@ TODO: Should we have .run_single() vs run()?
 """
 
 import typing
-from collections.abc import Callable
 
 import click
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import ParamHandler, SimpleHandlerFunction
 from clickify.handler.default_registry import get_default_registry
 from clickify.handler.function import FunctionHandler
 from clickify.handler.registry import HandlerRegistry
-
-type Predicate = Callable[[typing.Any], bool]
-type AnyCallable = Callable[..., typing.Any]
-
-type HandlerDecorator[T: SimpleHandlerFunction | ParamHandler] = Callable[[T], T]
+from clickify.types import AnyCallable
 
 
 class CLIApplication:
@@ -63,7 +57,7 @@ class CLIApplication:
 
             # Dummy toplevel paraminfo (not actually used, except in debug output)
             toplevel_paraminfo = ParamInfo("<toplevel>", object)
-            funchandler = FunctionHandler(self.registry, func)
+            funchandler = FunctionHandler(self.registry, func, multi_arg=True)
             handlerresult = funchandler.get(toplevel_paraminfo)
             if handlerresult is None:
                 raise Exception("Failure in constructing toplevel function handler")

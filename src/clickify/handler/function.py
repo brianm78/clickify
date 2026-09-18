@@ -29,7 +29,7 @@ class FunctionHandler[T](ParamHandler):
     ) -> None:
         self.registry = registry
         self.funcinfo = FuncInfo.from_func(func)
-        self.multi_arg = len(self.funcinfo.params) != 1 if isinstance(complex, Inferred) else complex
+        self.multi_arg = len(self.funcinfo.params) != 1 if isinstance(multi_arg, Inferred) else multi_arg
 
     def get(self, info: ParamInfo) -> HandlerResult | None:
         """We ignore paraminfo, and create a new set of parameters here."""

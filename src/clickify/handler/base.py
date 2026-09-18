@@ -10,7 +10,6 @@ if typing.TYPE_CHECKING:
     from clickify.handler.registry import HandlerRegistry
 
 type ParamPredicate = Callable[[ParamInfo], bool]
-type SimpleHandlerFunction = Callable[[ParamInfo], click.Parameter | None]
 
 
 class NotHandledException(Exception):
@@ -57,20 +56,6 @@ class ParamHandler:
         Otherwise, return HandlerResult
         """
 
-
-class SimpleParamHandler(ParamHandler):
-    """Simple case where implemented by simple callback function producing a single click.Parameter"""
-
-    def __init__(self, func: SimpleHandlerFunction):
-        self.func = func
-
-    def get(self, info: ParamInfo) -> HandlerResult | None:
-        # TODO: Add .check?
-        param = self.func(info)
-        # TODO: Allow it to return HandlerResult directly?
-        if param is not None:
-            return HandlerResult(info, [param])
-        return None
 
 class WrappingParamHandler(ParamHandler):
     """Wrap by modifying ParamInfo and re-looking up the annotation."""

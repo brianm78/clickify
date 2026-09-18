@@ -23,19 +23,21 @@ TEST_CASES: list[tuple[object, type[click.types.ParamType], dict[str, typing.Any
     (Path, click.types.Path, {}, {}),
     (uuid.UUID, click.types.UUIDParameterType, {}, {}),
     (datetime.datetime, click.types.DateTime, {}, {}),
+    # Sequence tests:
     (list[int], click.types.IntParamType, dict(nargs=-1), dict(multiple=True)),
     (tuple[int, ...], click.types.IntParamType, dict(nargs=-1), dict(multiple=True)),
     (tuple[int, int, int], click.types.IntParamType, dict(nargs=3), dict(nargs=3)),
     (tuple[int], click.types.IntParamType, dict(nargs=1), dict(nargs=1)),
     (Sequence[int], click.types.IntParamType, dict(nargs=-1), dict(multiple=True)),
-    # ClickOptions Annotations overrides defaults.
+    # Annotation tests: Options replace options, while annotating with parameter should replace it entirely.
     (typing.Annotated[int, ClickOptions(type=str)], click.types.StringParamType, {}, {}),
+    (typing.Annotated[str, click.Option(["test", "--foo"], type=click.types.BOOL)], click.types.BoolParamType, {}, {}),
 ]
 
 # Cases expected to be rejected
 FAILURE_CASES: list[object] = [
-    tuple[int, float],
-    complex,
+    tuple[int, float],  # We don't support mixed types
+    complex,  # Unregistered type
 ]
 
 
@@ -71,19 +73,6 @@ def test_failures(registry: HandlerRegistry, annotation: object, is_arg: bool) -
     info = ParamInfo("test", annotation, is_argument=is_arg)
     with pytest.raises(NotHandledException):
         _ = registry.handle_param(info)
-
-
-def test_annotated(registry: HandlerRegistry):
-    """Annotation should override param (including is_argument, type etc)"""
-
-    annotation = typing.Annotated[str, click.Option(["--foo"], type=click.types.BOOL)]
-    info = ParamInfo("foo", annotation, is_argument=True)
-    handler = registry.handle_param(info)
-    assert len(handler.params) == 1
-    param = handler.params[0]
-    assert isinstance(param, click.Option)
-    assert param.name == "foo"
-    assert isinstance(param.type, click.types.BoolParamType)
 
 
 def test_annotated_wrongname(registry: HandlerRegistry):

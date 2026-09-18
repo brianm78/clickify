@@ -1,25 +1,75 @@
+from collections.abc import Generator
+
 import click
+import pytest
 from click.testing import CliRunner
 
 from clickify import CLIApplication, ParamInfo
 from clickify.handler.base import HandlerResult, ParamHandler
 
-type mytype = int
+type ComplexType = int
+type SimpleType = int
+type HandlerClassType = int
 
 
-def test_custom_handler():
-    """Test custom handler end to end"""
+@pytest.fixture
+def app() -> Generator[CLIApplication]:
     app = CLIApplication()
 
-    class MyHandler(ParamHandler):
+    @app.registry.register()
+    def complex_handler(*args: int, flag: bool = False) -> ComplexType:
+        """Complex handler
+        Arguments:
+            args: list of numbers
+            flag: If True, always returns zero. Otherwise return sum.
+        """
+        if flag:
+            return 0
+        return sum(args, start=0)
+
+    @app.registry.register()
+    def simple_handler(arg: int) -> SimpleType:
+        """Simple handler."""
+        return arg * 10
+
+    class ClassBasedHandler(ParamHandler):
         def get(self, info: ParamInfo) -> HandlerResult:
             param = info.to_click_parameter(type=click.IntRange(0, 10))
             return HandlerResult(info, [param])
 
-    app.registry.register_handler_by_annotation(mytype, MyHandler())
+    app.registry.register_handler(ClassBasedHandler(), annotation=HandlerClassType)
+    yield app
+
+
+def test_simple(app: CLIApplication):
 
     @app.command()
-    def func(arg: mytype):
+    def func(arg: SimpleType = 0, other: bool = False):
+        """test func
+        Arguments:
+            arg: [--foo -x] Arg info
+            other: [-o] Flag
+        """
+        print(arg, other)
+
+    runner = CliRunner()
+    res = runner.invoke(func, ["--foo", "5"])
+    assert res.exit_code == 0
+    assert res.output == "50 False\n"
+
+    res = runner.invoke(func, ["-x", "1", "-o"])
+    assert res.exit_code == 0
+    assert res.output == "10 True\n"
+
+
+def test_classbased(app: CLIApplication):
+
+    @app.command()
+    def func(arg: HandlerClassType):
+        """test func
+        Arguments:
+            arg: arg
+        """
         print(arg)
 
     runner = CliRunner()
@@ -31,21 +81,3 @@ def test_custom_handler():
     runner = CliRunner()
     res = runner.invoke(func, ["20"])
     assert res.exit_code != 0
-
-
-def test_custom_handler_class():
-
-    app = CLIApplication()
-
-    @app.registry.register()
-    def timesten(val: int) -> mytype:
-        return val * 10
-
-    @app.command()
-    def func(arg: mytype):
-        print(arg)
-
-    runner = CliRunner()
-    res = runner.invoke(func, ["5"])
-    assert res.exit_code == 0
-    assert res.output == "50\n"
