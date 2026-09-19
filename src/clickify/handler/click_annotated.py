@@ -18,6 +18,9 @@ class ParamNameMismatch(Exception):
     """Raised where a parameter and the assigned name don't match."""
 
 
+# TODO: Allow setting decls, is_argument etc, click class (eg. subclass of Argument/Option)
+# Maybe also have add_decls=[] vs replace_decls=[]
+# (Or short_decls / long_decls)
 class ClickOptions:
     def __init__(self, **kwargs: typing.Any):
         """Augment the parameter to always pass the provided click options.
@@ -26,7 +29,7 @@ class ClickOptions:
 
             val: Annotated[int, ClickOpts(type=IntRange(0, 20)] = 0
         """
-        # TODO: Allow overriding is_argument / decls/others?
+        # TODO: Allow overriding is_argument / decls / others?
         self.opts = kwargs
 
 

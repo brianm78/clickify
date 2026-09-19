@@ -80,6 +80,11 @@ class CLIApplication:
             )
 
             self.commands.append(cmd)
+
+            # TODO: Return the function instead of the command.
+            # Invoke with the typer style app()
+            # (Maybe set the command as a function attribute so can do
+            # func.command() if want access to the click command directly.)
             return cmd
 
         return decorator

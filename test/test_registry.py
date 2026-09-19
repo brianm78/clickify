@@ -2,6 +2,7 @@ import datetime
 import typing
 import uuid
 from collections.abc import Generator, Sequence
+from enum import Enum
 from pathlib import Path
 
 import click.types
@@ -13,6 +14,8 @@ from clickify.handler.base import NotHandledException
 from clickify.handler.click_annotated import ParamNameMismatch
 from clickify.handler.default_registry import get_default_registry
 from clickify.handler.registry import HandlerRegistry
+
+enumtype = Enum("enumtype", "a b c")
 
 # annotation, expected click type, argument_props, option_props
 TEST_CASES: list[tuple[object, type[click.types.ParamType], dict[str, typing.Any], dict[str, typing.Any]]] = [
@@ -32,6 +35,9 @@ TEST_CASES: list[tuple[object, type[click.types.ParamType], dict[str, typing.Any
     # Annotation tests: Options replace options, while annotating with parameter should replace it entirely.
     (typing.Annotated[int, ClickOptions(type=str)], click.types.StringParamType, {}, {}),
     (typing.Annotated[str, click.Option(["test", "--foo"], type=click.types.BOOL)], click.types.BoolParamType, {}, {}),
+    #
+    (typing.Literal["a", "b"], click.types.Choice, {}, {}),
+    (enumtype, click.types.Choice, {}, {}),
 ]
 
 # Cases expected to be rejected

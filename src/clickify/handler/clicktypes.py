@@ -35,3 +35,7 @@ def register_click_types(reg: HandlerRegistry):
     reg.register_handler(ClickTypeHandler(click.UUID), annotation=uuid.UUID)
     reg.register_handler(ClickTypeHandler(click.Path()), annotation=Path)
     reg.register_handler(ClickTypeHandler(click.DateTime()), annotation=datetime.datetime)
+
+    @reg.register()
+    def context_handler() -> click.Context:
+        return click.get_current_context()

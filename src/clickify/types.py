@@ -6,6 +6,7 @@ type AnyCallable = Callable[..., typing.Any]
 type Decorator[T: AnyCallable] = Callable[[T], T]
 
 
+
 @typing.final
 class Inferred(Enum):
     value = auto()
