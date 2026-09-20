@@ -64,13 +64,15 @@ def test_basic():
     test = app.command(basic_func)
     runner = CliRunner()
     res = runner.invoke(test, ["foo", "42", "--flag"])
-    print("**", res.output)
     assert res.output == "foo 42 True\n"
 
     res = runner.invoke(test, ["foo", "42", "-f"])
     assert res.output == "foo 42 True\n"
 
     res = runner.invoke(test, ["bar", "1"])
+    assert res.output == "bar 1 False\n"
+
+    res = runner.invoke(app, ["basic_func", "bar", "1"])
     assert res.output == "bar 1 False\n"
 
 

@@ -36,7 +36,6 @@ def test_enum(aliased: bool):
 
     runner = CliRunner()
     res = runner.invoke(test, ["red"])
-    print(res.output)
     assert res.exit_code == 0
     assert res.output == "Color.red\n"
 
@@ -63,7 +62,6 @@ def test_literal(aliased: bool):
 
     runner = CliRunner()
     res = runner.invoke(test, ["yes"])
-    print(res.output)
     assert res.exit_code == 0
     assert res.output == "yes\n"
 
