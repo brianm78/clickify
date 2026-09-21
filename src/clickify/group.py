@@ -1,9 +1,10 @@
 import typing
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import click
 
 from clickify.func.paraminfo import ParamInfo
+from clickify.handler.base import HandlerResult
 from clickify.handler.function import FunctionHandler
 from clickify.handler.registry import HandlerRegistry
 from clickify.types import AnyCallable
@@ -37,6 +38,7 @@ class ClickifyGroup(click.Group):
 
             # Handle params specified by arg, or by click decorators.
             # These will override parameters inferred from type annotations.
+            # TODO: Implement
             attr_params = attrs.pop("params", [])
             decorator_params = getattr(func, "__click_params__", [])
             param_dict = {p.name: p for p in attr_params}
@@ -47,6 +49,7 @@ class ClickifyGroup(click.Group):
             # Dummy toplevel paraminfo (not actually used, except in debug output)
             toplevel_paraminfo = ParamInfo("<toplevel>", object)
             funchandler = FunctionHandler(self.registry, func, multi_arg=True)
+
             handlerresult = funchandler.get(toplevel_paraminfo)
             if handlerresult is None:
                 raise Exception("Failure in constructing toplevel function handler")

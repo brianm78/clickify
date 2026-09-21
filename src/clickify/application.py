@@ -1,15 +1,68 @@
+import typing
+from collections.abc import Callable
+
+from clickify.func.paraminfo import ParamInfo
 from clickify.group import ClickifyGroup
 from clickify.handler.default_registry import get_default_registry
+from clickify.handler.function import FunctionHandler
 from clickify.handler.registry import HandlerRegistry
+from clickify.types import AnyCallable
 
 
 class CLIApplication(ClickifyGroup):
     """Hold registry of handled types and other app settings."""
 
-    def __init__(self, registry: HandlerRegistry | None = None):
+    def __init__(self, registry: HandlerRegistry | None = None, **kwargs: typing.Any):
+        """Create new toplevel CLI application.
+        Additional keyword arguments will be passed through to the click.Group constructor.
+        """
         if registry is None:
             registry = get_default_registry()
-            # TODO: Setup defaults
-        super().__init__(registry=registry)
+        super().__init__(registry=registry, **kwargs)
+        self.group_class = ClickifyGroup
 
         self.register = registry.register
+
+    @classmethod
+    def with_callback(
+        cls,
+        registry: HandlerRegistry | None = None,
+        name: str | None = None,
+        help: str | None = None,
+        **kwargs: typing.Any,
+    ) -> Callable[[AnyCallable], typing.Self]:
+        """Register a top-level callback.
+
+        Eg.
+            @CLIApplication.with_callback()
+            def cli():
+                ...
+
+            @cli.command()
+            def cmd(): ...
+
+        """
+        if registry is None:
+            registry = get_default_registry()
+
+        def decorator(func: AnyCallable) -> typing.Self:
+            toplevel_paraminfo = ParamInfo("<toplevel>", object)
+            funchandler = FunctionHandler(registry, func, True)
+            handlerresult = funchandler.get(toplevel_paraminfo)
+            if handlerresult is None:
+                raise Exception("Failure in constructing toplevel function handler")
+
+            funchandler = FunctionHandler(registry, func, multi_arg=True)
+            helpstr = funchandler.funcinfo.docinfo.description if help is None else help
+            cmdname = getattr(func, "__name__", None) if name is None else name
+            app = cls(
+                callback=handlerresult.callback,
+                params=handlerresult.params,
+                registry=registry,
+                name=cmdname,
+                help=helpstr,
+                **kwargs,
+            )
+            return app
+
+        return decorator

@@ -10,6 +10,7 @@ from clickify.handler.base import HandlerResult, ParamHandler
 type ComplexType = int
 type SimpleType = int
 type HandlerClassType = int
+type ZeroArgsType = int
 
 
 @pytest.fixture
@@ -31,6 +32,10 @@ def app() -> Generator[CLIApplication]:
     def simple_handler(arg: int) -> SimpleType:
         """Simple handler."""
         return arg * 10
+
+    @app.registry.register()
+    def ZeroArgHandler() -> ZeroArgsType:
+        return 42
 
     class ClassBasedHandler(ParamHandler):
         def get(self, info: ParamInfo) -> HandlerResult:
@@ -60,6 +65,17 @@ def test_simple(app: CLIApplication):
     res = runner.invoke(func, ["-x", "1", "-o"])
     assert res.exit_code == 0
     assert res.output == "10 True\n"
+
+
+def test_no_args(app: CLIApplication):
+    @app.command()
+    def func(x: ZeroArgsType):
+        print(x)
+
+    runner = CliRunner()
+    res = runner.invoke(func)
+    assert res.exit_code == 0
+    assert res.output == "42\n"
 
 
 def test_classbased(app: CLIApplication):

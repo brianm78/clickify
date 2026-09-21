@@ -20,7 +20,6 @@ class ChoiceTypeHandler(ParamHandler):
 
         callback: Callable[dict[str, typing.Any], typing.Any] | None = None
         # Handle Literal[] / Enum types as a click.Choice (including as type aliases)
-        print(f"Checking {info.annotation} -> {annotation}")
         if isinstance(annotation, type) and issubclass(annotation, enum.Enum):
             choicetype = click.Choice(e.name for e in annotation)
 
