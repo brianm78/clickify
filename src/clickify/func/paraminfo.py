@@ -77,6 +77,9 @@ class ParamInfo:
 
         arginfo.click_defaults["required"] = param.default is inspect._empty
 
+        if arginfo.default is not UNSET:
+            arginfo.click_defaults["default"] = arginfo.default
+
         match param.kind:
             case inspect.Parameter.VAR_KEYWORD:
                 raise Exception("**kwargs not supported")

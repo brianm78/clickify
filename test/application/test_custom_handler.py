@@ -55,7 +55,7 @@ def test_simple(app: CLIApplication):
             arg: [--foo -x] Arg info
             other: [-o] Flag
         """
-        print(arg, other)
+        click.echo(f"{arg} {other}")
 
     runner = CliRunner()
     res = runner.invoke(func, ["--foo", "5"])
@@ -70,7 +70,7 @@ def test_simple(app: CLIApplication):
 def test_no_args(app: CLIApplication):
     @app.command()
     def func(x: ZeroArgsType):
-        print(x)
+        click.echo(x)
 
     runner = CliRunner()
     res = runner.invoke(func)
@@ -86,7 +86,7 @@ def test_classbased(app: CLIApplication):
         Arguments:
             arg: arg
         """
-        print(arg)
+        click.echo(arg)
 
     runner = CliRunner()
     res = runner.invoke(func, ["5"])

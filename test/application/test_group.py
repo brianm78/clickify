@@ -11,23 +11,23 @@ def test_group():
     # NOT INVOKING CALLBACK
     @app.group()
     def grp(flag: bool = False):
-        print(flag)
+        click.echo(flag)
 
     assert isinstance(grp, ClickifyGroup)
 
     @app.command()
     def toplevel(val: int):
-        print(val)
+        click.echo(val)
 
     @grp.command()
     def cmd(arg: str):
-        print(arg)
+        click.echo(arg)
 
     assert isinstance(cmd, click.Command)
 
     @grp.command()
     def cmd2(arg: str, flag2: bool = False):
-        print(arg, flag2)
+        click.echo(f"{arg} {flag2}")
 
     assert grp.callback is not None
     grp.callback(flag=True)
@@ -44,24 +44,22 @@ def test_group():
 def test_toplevel_callback():
     @CLIApplication.with_callback()
     def grp(flag: bool = False):
-        print("Callback:", flag)
+        click.echo(f"Callback: {flag}")
 
     @grp.command()
     def cmd1(arg: str):
-        print(arg)
+        click.echo(arg)
 
     @grp.command()
     def cmd2(arg: int):
-        print(arg)
+        click.echo(arg)
 
     assert isinstance(grp, CLIApplication)
 
     runner = CliRunner()
 
     res = runner.invoke(grp, ["cmd1", "foo"])
-    print(res.output)
     assert res.output == "Callback: False\nfoo\n"
 
     res = runner.invoke(grp, ["--flag", "cmd2", "123"])
-    print(res.output)
     assert res.output == "Callback: True\n123\n"

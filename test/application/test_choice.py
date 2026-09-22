@@ -1,6 +1,7 @@
 import typing
 from enum import Enum, auto
 
+import click
 import pytest
 from click.testing import CliRunner
 
@@ -26,13 +27,13 @@ def test_enum(aliased: bool):
         @app.command()
         def test(color: AliasedColor):
             assert isinstance(color, Color)
-            print(color)
+            click.echo(color)
     else:
 
         @app.command()
         def test(color: Color):
             assert isinstance(color, Color)
-            print(color)
+            click.echo(color)
 
     runner = CliRunner()
     res = runner.invoke(test, ["red"])
@@ -52,13 +53,13 @@ def test_literal(aliased: bool):
         @app.command()
         def test(val: AliasedLiteral):
             assert isinstance(val, str)
-            print(val)
+            click.echo(val)
     else:
 
         @app.command()
         def test(val: typing.Literal["yes", "no"]):
             assert isinstance(val, str)
-            print(val)
+            click.echo(val)
 
     runner = CliRunner()
     res = runner.invoke(test, ["yes"])

@@ -1,10 +1,9 @@
 import typing
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 
 import click
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import HandlerResult
 from clickify.handler.function import FunctionHandler
 from clickify.handler.registry import HandlerRegistry
 from clickify.types import AnyCallable
@@ -41,14 +40,14 @@ class ClickifyGroup(click.Group):
             # TODO: Implement
             attr_params = attrs.pop("params", [])
             decorator_params = getattr(func, "__click_params__", [])
-            param_dict = {p.name: p for p in attr_params}
+            param_dict: dict[str, click.Parameter] = {p.name: p for p in attr_params}
             param_dict.update({p.name: p for p in decorator_params})
 
             # TODO: Override if click params specified.
 
             # Dummy toplevel paraminfo (not actually used, except in debug output)
             toplevel_paraminfo = ParamInfo("<toplevel>", object)
-            funchandler = FunctionHandler(self.registry, func, multi_arg=True)
+            funchandler = FunctionHandler(self.registry, func, multi_arg=True, override_params=param_dict)
 
             handlerresult = funchandler.get(toplevel_paraminfo)
             if handlerresult is None:

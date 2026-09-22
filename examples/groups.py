@@ -1,27 +1,21 @@
+import click
+
 from clickify import CLIApplication
 
 
 @CLIApplication.with_callback()
 def app():
-    print("Toplevel callback")
-
-
-# @app
-# def toplevel_callback():
-#     print("TOPLEVEL")
+    click.echo("Toplevel callback")
 
 
 @app.group()
 def foo(flag: bool = False):
-    print(flag)
+    click.echo(flag)
 
 
 @foo.command()
 def bar(arg: str):
-    print("bar", arg)
+    click.echo(f"bar {arg}")
 
 
-print(type(foo))
-print(foo.registry)
-print(foo.callback)  # NONE!
 app()

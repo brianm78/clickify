@@ -3,6 +3,8 @@ import typing
 from collections.abc import Callable
 from dataclasses import replace
 
+import click
+
 from clickify.func import FuncInfo, ParamInfo
 from clickify.handler.base import HandlerResult, ParamHandler
 from clickify.types import Inferred
@@ -25,23 +27,46 @@ class FunctionHandler[T](ParamHandler):
     """
 
     def __init__(
-        self, registry: HandlerRegistry, func: Callable[..., T], multi_arg: bool | Inferred = Inferred.value
+        self,
+        registry: HandlerRegistry,
+        func: Callable[..., T],
+        multi_arg: bool | Inferred = Inferred.value,
+        override_params: dict[str, click.Parameter] | None = None,
     ) -> None:
         self.registry = registry
         self.funcinfo = FuncInfo.from_func(func)
         self.multi_arg = len(self.funcinfo.params) != 1 if isinstance(multi_arg, Inferred) else multi_arg
+
+        # Get click decorator annotations:
+        decorator_params = getattr(func, "__click_params__", [])
+        if decorator_params:
+            self.override_params = {p.name: p for p in decorator_params}
+        else:
+            self.override_params = {}
+
+        if override_params:
+            # Passed in parameters take priority over decorator annotation
+            self.override_params.update(override_params)
+
+    def _handle_param(self, info: ParamInfo):
+        # Allow arguments / click annotations to override signature.
+        if info.name in self.override_params:
+            return HandlerResult(info, [self.override_params[info.name]])
+
+        return self.registry.handle_param(info)
 
     def get(self, info: ParamInfo) -> HandlerResult | None:
         """We ignore paraminfo, and create a new set of parameters here."""
 
         # TODO: allow prefixing opts with paraminfo argname?
         if self.multi_arg:
-            handler_res = [self.registry.handle_param(paraminfo) for paraminfo in self.funcinfo.params]
+            handler_res = [self._handle_param(paraminfo) for paraminfo in self.funcinfo.params]
 
         else:
-            # The annotation only provides the type.  The rest comes from the signature we're handling.
+            # The function annotation only provides the type.  The rest comes from the signature of the command
+            # function (ie. name, decls, default etc)
             paraminfo = replace(info, annotation=self.funcinfo.params[0].annotation)
-            handler_res = [self.registry.handle_param(paraminfo)]
+            handler_res = [self._handle_param(paraminfo)]
 
         if any(x is None for x in handler_res):
             return None

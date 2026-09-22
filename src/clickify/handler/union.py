@@ -1,10 +1,9 @@
 import types
 import typing
-from collections.abc import Sequence
 from dataclasses import replace
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import NotHandledException, WrappingParamHandler
+from clickify.handler.base import WrappingParamHandler
 from clickify.typeutil import unwrap_annotation
 from clickify.utils import AnnotationType
 
@@ -25,7 +24,6 @@ class NullableParamHandler(WrappingParamHandler):
 
         found_type: AnnotationType | None = None
         for union_type in typing.get_args(ann):
-            print("UNIONTYPE", union_type)
             if union_type is not types.NoneType:
                 if found_type is None:
                     found_type = union_type

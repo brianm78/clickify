@@ -1,4 +1,4 @@
-import pytest
+import click
 from click.testing import CliRunner
 
 from clickify import CLIApplication
@@ -9,7 +9,7 @@ def test_nullable():
 
     @app.command()
     def testunion(arg: str | None = None, /, opt: int | None = None):
-        print(arg, opt)
+        click.echo(f"{arg} {opt}")
 
     runner = CliRunner()
 

@@ -1,3 +1,4 @@
+import click
 from click.testing import CliRunner
 
 from clickify.application import CLIApplication
@@ -11,7 +12,7 @@ def basic_func(strval: str, intval: int, flag: bool = False) -> None:
         intval: Integer argument
         flag: [-f --flag] Flag option
     """
-    print(strval, intval, flag)
+    click.echo(f"{strval} {intval} {flag}")
 
 
 def posargs_func(optional_arg: str = "default", /, *, required_opt: int):
@@ -20,7 +21,7 @@ def posargs_func(optional_arg: str = "default", /, *, required_opt: int):
         optional_arg: Optional argument
         required_opt: [-o --opt] Required option
     """
-    print(optional_arg, required_opt)
+    click.echo(f"{optional_arg} {required_opt}")
 
 
 def varargs_func(*vals: int, total: bool = False):
@@ -30,9 +31,9 @@ def varargs_func(*vals: int, total: bool = False):
         vals: list of ints
         total: [-t --total] Print sum of args
     """
-    print(vals)
+    click.echo(vals)
     if total:
-        print(sum(vals))
+        click.echo(sum(vals))
 
 
 def test_help():
@@ -95,3 +96,22 @@ def test_varargs():
 
     res = runner.invoke(test, [])
     assert res.output == "()\n"
+
+
+def test_defaults():
+    """Test default value retained for both opts and args, and overridden if value is passed."""
+    app = CLIApplication()
+
+    @app.command()
+    def func(arg: int = 10, /, opt: int = 20):
+        click.echo(f"{arg} {opt}")
+
+    runner = CliRunner()
+    res = runner.invoke(func, [])
+    assert res.output == "10 20\n"
+
+    res = runner.invoke(func, ["--opt", "50"])
+    assert res.output == "10 50\n"
+
+    res = runner.invoke(func, ["50"])
+    assert res.output == "50 20\n"
