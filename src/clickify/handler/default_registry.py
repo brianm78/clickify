@@ -9,7 +9,7 @@ from clickify.handler.click_annotated import ClickAnnotatedOptionsHandler, Click
 from clickify.handler.clicktypes import ClickTypeHandler
 from clickify.handler.registry import HandlerRegistry
 from clickify.handler.sequence import SequenceParamHandler
-from clickify.handler.union import NullableParamHandler
+from clickify.handler.union import UnionParamHandler
 from clickify.types import FileBinaryRead, FileBinaryWrite, FileText, FileTextWrite
 
 
@@ -36,7 +36,7 @@ def get_default_registry() -> HandlerRegistry:
 
     # Sequence[T] / T | None cases
     default_registry.register_handler(SequenceParamHandler(default_registry))
-    default_registry.register_handler(NullableParamHandler(default_registry))
+    default_registry.register_handler(UnionParamHandler(default_registry))
 
     # click.Context
     @default_registry.register()
