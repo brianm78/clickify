@@ -6,7 +6,9 @@ import click
 from clickify.func.paraminfo import ParamInfo
 from clickify.handler.function import FunctionHandler
 from clickify.handler.registry import HandlerRegistry
-from clickify.types import AnyCallable
+from clickify.types import AnyCallable, Decorator
+
+type CommandDecotator[TCmd] = Callable[[AnyCallable], TCmd]
 
 
 class ClickifyGroup(click.Group):
@@ -20,68 +22,57 @@ class ClickifyGroup(click.Group):
         super().__init__(**kwargs)
         self.registry = registry
 
-    def _make_command_decorator[TCmd: click.Command](
-        self, cls: type[TCmd], name: str | None = None, **attrs: typing.Any
-    ) -> Callable[[AnyCallable], TCmd]:
-        """Return decorator that creates a click.Command from the function.
+    def _make_command[TCmd: click.Command](
+        self, func: AnyCallable, cls: type[TCmd], name: str | None = None, **attrs: typing.Any
+    ) -> TCmd:
+        """Construct click.Command type from function.
 
         Keyword arguments are passed to the command class.
         May contain a params arg that will override any parameter definitions with the provided
         click.Parameter, and will likewise respect any explicitly annotated args (via @click.option/@click.argument)
         """
 
-        def decorator(func: AnyCallable) -> TCmd:
+        if isinstance(func, click.Command):
+            raise TypeError("Attempted to convert a callback into a command twice.")
 
-            if isinstance(func, click.Command):
-                raise TypeError("Attempted to convert a callback into a command twice.")
+        # Handle params specified by arg, or by click decorators.
+        # These will override parameters inferred from type annotations.
+        # TODO: Implement
+        attr_params = attrs.pop("params", [])
+        decorator_params = getattr(func, "__click_params__", [])
+        param_dict: dict[str, click.Parameter] = {p.name: p for p in attr_params}
+        param_dict.update({p.name: p for p in decorator_params})
 
-            # Handle params specified by arg, or by click decorators.
-            # These will override parameters inferred from type annotations.
-            # TODO: Implement
-            attr_params = attrs.pop("params", [])
-            decorator_params = getattr(func, "__click_params__", [])
-            param_dict: dict[str, click.Parameter] = {p.name: p for p in attr_params}
-            param_dict.update({p.name: p for p in decorator_params})
+        # TODO: Override if click params specified.
 
-            # TODO: Override if click params specified.
+        # Dummy toplevel paraminfo (not actually used, except in debug output)
+        toplevel_paraminfo = ParamInfo("<toplevel>", object)
+        funchandler = FunctionHandler(self.registry, func, multi_arg=True, override_params=param_dict)
 
-            # Dummy toplevel paraminfo (not actually used, except in debug output)
-            toplevel_paraminfo = ParamInfo("<toplevel>", object)
-            funchandler = FunctionHandler(self.registry, func, multi_arg=True, override_params=param_dict)
+        handlerresult = funchandler.get(toplevel_paraminfo)
+        if handlerresult is None:
+            raise Exception("Failure in constructing toplevel function handler")
 
-            handlerresult = funchandler.get(toplevel_paraminfo)
-            if handlerresult is None:
-                raise Exception("Failure in constructing toplevel function handler")
+        # If help specified, override docstring description
+        help = attrs.pop("help", None)
+        if help is None:
+            help = funchandler.funcinfo.docinfo.description
 
-            # If help specified, override docstring description
-            help = attrs.pop("help", None)
-            if help is None:
-                help = funchandler.funcinfo.docinfo.description
+        cmdname = getattr(func, "__name__", None) if name is None else name
+        if cmdname is None:
+            raise Exception("No name provided for function")
 
-            cmdname = getattr(func, "__name__", None) if name is None else name
-            if cmdname is None:
-                raise Exception("No name provided for function")
+        cmd = cls(
+            name=cmdname,
+            callback=handlerresult.callback,
+            params=handlerresult.params,
+            help=help,
+            **attrs,
+        )
 
-            cmd = cls(
-                name=cmdname,
-                callback=handlerresult.callback,
-                params=handlerresult.params,
-                help=help,
-                **attrs,
-            )
+        # self.add_command(cmd)
 
-            self.add_command(cmd)
-
-            # TODO: Should we return the function instead of the command?
-            # It'd be breaking with click, but allows the function to be called normally, and we
-            # can invoke it from the group object anyway.
-            #  - maybe annotate with an attribute pointing at the command.
-            # (Or have two modes / an argument to @command() / seperate method @function_command()?
-            # Eg. @command(replace=False)
-            # What about @group though?
-            return cmd
-
-        return decorator
+        return cmd
 
     # Overloads for direct use without args vs  create a decorator
     @typing.overload
@@ -90,7 +81,7 @@ class ClickifyGroup(click.Group):
     @typing.overload
     def command[TCmd: click.Command](
         self, name: str | None, cls: type[TCmd], **attrs: typing.Any
-    ) -> typing.Callable[[AnyCallable], TCmd]: ...
+    ) -> Callable[[AnyCallable], TCmd]: ...
 
     @typing.overload
     def command[TCmd: click.Command](
@@ -99,35 +90,105 @@ class ClickifyGroup(click.Group):
         *,
         cls: type[TCmd],
         **attrs: typing.Any,
-    ) -> typing.Callable[[AnyCallable], TCmd]: ...
+    ) -> Callable[[AnyCallable], TCmd]: ...
 
     # variant: with optional string name, no cls argument provided.
     @typing.overload
     def command(
         self, name: str | None = None, cls: None = None, **attrs: typing.Any
-    ) -> typing.Callable[[AnyCallable], click.Command]: ...
+    ) -> Callable[[AnyCallable], click.Command]: ...
 
     def command[TCmd: click.Command](
         self,
         name: str | AnyCallable | None = None,
         cls: type[TCmd] | None = None,
         **attrs: typing.Any,
-    ) -> click.Command | typing.Callable[[AnyCallable], click.Command] | typing.Callable[[AnyCallable], TCmd]:
+    ) -> click.Command | Callable[[AnyCallable], click.Command] | Callable[[AnyCallable], TCmd]:
         """Wrap the click.command decorator to also automatically infer types from
         type annotations.
         """
+
         if callable(name):
             # Used as decorator with no args - decorate directly as a Command
 
             assert cls is None, "Use 'command(cls=cls)(callable)' to specify a class."
             assert not attrs, "Use 'command(args=..., ...)(callable)' to provide arguments."
-            decorator = self._make_command_decorator(click.Command)
-            return decorator(name)
+            cmd = self._make_command(name, click.Command)
+            self.add_command(cmd)
+            return cmd
 
         if cls is None:
-            return self._make_command_decorator(click.Command, name, **attrs)
-        else:
-            return self._make_command_decorator(cls, name, **attrs)
+            cls = typing.cast(type[TCmd], click.Command)
+
+        def decorator(func: AnyCallable) -> TCmd:
+            cmd = self._make_command(func, cls, name, **attrs)
+            self.add_command(cmd)
+            return cmd
+
+        return decorator
+
+    @typing.overload
+    def cmd[T: AnyCallable](self, name: T) -> T: ...
+
+    @typing.overload
+    def cmd(
+        self, name: str | None, cls: type[click.Command], add_annotation: bool = True, **attrs: typing.Any
+    ) -> Decorator: ...
+
+    @typing.overload
+    def cmd(
+        self,
+        name: None = None,
+        *,
+        cls: type[click.Command] = click.Command,
+        add_annotation: bool = True,
+        **attrs: typing.Any,
+    ) -> Decorator: ...
+
+    @typing.overload
+    def cmd(self, name: str | None = None, cls: None = None, **attrs: typing.Any) -> Decorator: ...
+
+    def cmd[TFunc: AnyCallable](
+        self,
+        name: str | TFunc | None = None,
+        cls: type[click.Command] | None = None,
+        add_annotation: bool = True,
+        **attrs: typing.Any,
+    ) -> TFunc | Decorator:
+        """Equivalent to @command, but with the one difference that the function is not replaced with the Command
+        object created.
+        It can be invoked through the group / CLIApplication it is added to, or  add_annotation is True, by calling
+        func.cmd().  Otherwise, the function remaing unchanged and usable as-is.
+
+        Arguments:
+            cls:
+                The click.Command subclass to use
+            add_annotation:
+                Annotate the function with a "cmd" attribute corresponding to the click.Command object created from it.
+            attrs:
+                Further arguments are passed through to the Command class
+        """
+
+        if callable(name):
+            # Used as decorator with no args - decorate directly as a Command
+
+            assert cls is None, "Use 'command(cls=cls)(callable)' to specify a class."
+            assert not attrs, "Use 'command(args=..., ...)(callable)' to provide arguments."
+            cmd = self._make_command(name, click.Command)
+            self.add_command(cmd)
+            return cmd
+
+        if cls is None:
+            cls = click.Command
+
+        def decorator[T: AnyCallable](func: T) -> T:
+            cmd = self._make_command(func, cls, name, **attrs)
+            self.add_command(cmd)
+            if add_annotation:
+                setattr(func, "cmd", cmd)
+            return func
+
+        return decorator
 
     @typing.overload
     def group(self, __func: Callable[..., typing.Any]) -> ClickifyGroup: ...
