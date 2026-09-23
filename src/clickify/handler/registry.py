@@ -11,14 +11,31 @@ from clickify.utils import AnnotationType
 
 
 def match_annotation(
-    annotation: AnnotationType, ignore_annotated: bool = True, extra_predicate: ParamPredicate | None = None
+    annotation: AnnotationType,
+    ignore_annotated: bool = True,
+    is_argument: bool | None = None,
+    extra_predicate: ParamPredicate | None = None,
 ) -> ParamPredicate:
-    """Does the annotation exactly match the registered type (ignoring Annotated[])"""
+    """Does the annotation exactly match the registered type (ignoring Annotated[])
+
+    Arguments:
+        annotation: Annotation to match
+        ignore_annotated:  Treat `Annotated[T, ...]` as just `T`
+        is_argument:
+            If True/False, only match if the parameter is an argument.
+            If None, matches either way.
+        extra_predicate:
+            Any extra predicate function taking the paraminfo object.
+
+    """
     if ignore_annotated:
         annotation, _meta = unwrap_annotation(annotation, resolve_alias=False, resolve_generic=False)
 
     def match(info: ParamInfo) -> bool:
         # Require exact match.
+        if is_argument is not None and info.is_argument != is_argument:
+            return False
+
         return (info.annotation == annotation) and ((extra_predicate is None) or extra_predicate(info))
 
     return match
@@ -45,7 +62,7 @@ class HandlerRegistry:
         - a predicate that determines
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # TODO: Specify priority?
         self.handlers: list[tuple[ParamPredicate, ParamHandler]] = []
 
@@ -68,6 +85,7 @@ class HandlerRegistry:
         func: AnyCallable | None = None,
         *,
         annotation: AnnotationType | Inferred = Inferred.value,
+        is_argument: bool | None = None,
         multi_arg: bool | Inferred = Inferred.value,
         # predicate
     ) -> Decorator | None:
@@ -90,6 +108,8 @@ class HandlerRegistry:
             annotation:
                 The annotation to register.
                 If not provided, will be inferred from the return type of the function.
+            is_argument:
+                If non-None, only match where the param is an Argument type (when True) or Option type (when False)
             multi_arg:
                 Specify whether multiargument mode is used.
                 If not provided, will be inferred based on whether the function takes a single argument.
@@ -102,7 +122,7 @@ class HandlerRegistry:
             if handled_annotation is inspect._empty:
                 raise Exception("No annotation specified, and function does not provide a return annotation")
 
-            self.register_handler(handler, predicate=match_annotation(handled_annotation))
+            self.register_handler(handler, predicate=match_annotation(handled_annotation, is_argument=is_argument))
             return func
 
         if func is not None:
@@ -116,9 +136,9 @@ class HandlerRegistry:
         handler: ParamHandler,
         predicate: ParamPredicate | None = None,
         annotation: AnnotationType | Unspecified = Unspecified.value,
+        is_argument: bool | None = None,
     ) -> None:
         """Register a ParamHandler, optionally requiring a predicate to check before trying.
-
 
         Arguments:
             handler:
@@ -129,9 +149,11 @@ class HandlerRegistry:
             annotation:
                 Shortcut for a predicate that checks for a matching annotation
                 (Checks via ==, so require exact match)
+            is_argument:
+                If non-None, add a predicate that checks the argument type matches either Argument or Option.
         """
         if not isinstance(annotation, Unspecified):
-            predicate = match_annotation(annotation, extra_predicate=predicate)
+            predicate = match_annotation(annotation, is_argument=is_argument, extra_predicate=predicate)
         if predicate is None:
             predicate = always_check
         self.handlers.append((predicate, handler))

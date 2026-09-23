@@ -30,7 +30,7 @@ class CLIApplication(ClickifyGroup):
         name: str | None = None,
         help: str | None = None,
         **kwargs: typing.Any,
-    ) -> Callable[[AnyCallable], typing.Self]:
+    ) -> Callable[[AnyCallable], CLIApplication]:
         """Register a top-level callback.
 
         Eg.
@@ -45,7 +45,7 @@ class CLIApplication(ClickifyGroup):
         if registry is None:
             registry = get_default_registry()
 
-        def decorator(func: AnyCallable) -> typing.Self:
+        def decorator(func: AnyCallable) -> CLIApplication:
             toplevel_paraminfo = ParamInfo("<toplevel>", object)
             funchandler = FunctionHandler(registry, func, True)
             handlerresult = funchandler.get(toplevel_paraminfo)

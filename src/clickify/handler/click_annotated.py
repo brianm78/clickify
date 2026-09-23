@@ -27,7 +27,7 @@ class ClickOptions:
         Only valid for builtin click option types.
         Eg.
 
-            val: Annotated[int, ClickOpts(type=IntRange(0, 20)] = 0
+            val: Annotated[int, ClickOpts(type=click.IntRange(0, 20)] = 0
         """
         # TODO: Allow overriding is_argument / decls / others?
         self.opts = kwargs

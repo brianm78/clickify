@@ -7,19 +7,13 @@ from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import HandlerResult, ParamHandler
 
 # TODO: Allow TypeOptions annotation.  Eg. for Path(readable=False) etc.
+# Eg. x : Annotated[Path, ClickOptions(redable=True, exists=True)] etc]
 
 
 class ClickTypeHandler(ParamHandler):
-    def __init__(
-        self, click_type: click.ParamType, option_specific_opts: dict[str, typing.Any] | None = None, **opts: typing.Any
-    ) -> None:
+    def __init__(self, click_type: click.ParamType, **opts: typing.Any) -> None:
         self.clicktype = click_type
-        self.option_opts = self.opts = opts
-
-        # Allow options that only apply on Option type (eg. flag=True on bool optionss, but not arguments)
-        if option_specific_opts is not None:
-            self.option_opts = opts | option_specific_opts
+        self.opts = opts
 
     def get(self, info: ParamInfo) -> HandlerResult:
-        opts = self.opts if info.is_argument else self.option_opts
-        return HandlerResult(info, [info.to_click_parameter(type=self.clicktype, **opts)])
+        return HandlerResult(info, [info.to_click_parameter(type=self.clicktype, **self.opts)])

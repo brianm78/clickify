@@ -22,7 +22,9 @@ def get_default_registry() -> HandlerRegistry:
 
     # Builtin click types.
     default_registry.register_handler(ChoiceTypeHandler())  # Literal / Enum
-    default_registry.register_handler(ClickTypeHandler(click.BOOL, dict(is_flag=True)), annotation=bool)
+    # Use is_flag=True only when bool being used as option.
+    default_registry.register_handler(ClickTypeHandler(click.BOOL, is_flag=True), annotation=bool, is_argument=False)
+    default_registry.register_handler(ClickTypeHandler(click.BOOL), annotation=bool, is_argument=True)
     default_registry.register_handler(ClickTypeHandler(click.INT), annotation=int)
     default_registry.register_handler(ClickTypeHandler(click.FLOAT), annotation=float)
     default_registry.register_handler(ClickTypeHandler(click.STRING), annotation=str)
