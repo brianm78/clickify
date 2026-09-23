@@ -1,0 +1,112 @@
+"""
+Check basic click types work.
+(Choice covered in test_choice)
+"""
+
+import uuid
+from datetime import datetime
+from pathlib import Path
+
+import click
+import pytest
+from click.testing import CliRunner
+
+from clickify import CLIApplication
+from clickify.types import AnyCallable
+
+
+# TODO: Test File
+def bool_func(arg: bool = False, /, opt: bool = False):
+    assert isinstance(arg, bool)
+    assert isinstance(opt, bool)
+    click.echo(f"{arg} {opt}")
+
+
+def int_func(arg: int = 0, /, opt: int = 1):
+    assert isinstance(arg, int)
+    assert isinstance(opt, int)
+    click.echo(f"{arg} {opt}")
+
+
+def float_func(arg: float = 0.0, /, opt: float = 1.0):
+    assert isinstance(arg, float)
+    assert isinstance(opt, float)
+    click.echo(f"{arg} {opt}")
+
+
+def str_func(arg: str = "a", /, opt: str = "b"):
+    assert isinstance(arg, str)
+    assert isinstance(opt, str)
+    click.echo(f"{arg} {opt}")
+
+
+def path_func(arg: Path = Path("/tmp/a"), /, opt: Path = Path("/tmp/b")):
+    assert isinstance(arg, Path)
+    assert isinstance(opt, Path)
+    click.echo(f"{arg.name} {opt.name}")
+
+
+def datetime_func(arg: datetime = datetime(2000, 1, 1), /, opt: datetime = datetime(2001, 1, 1)):
+    assert isinstance(arg, datetime)
+    assert isinstance(opt, datetime)
+    click.echo(f"{arg.year} {opt.year}")
+
+
+default_uuid1, default_uuid2, uuid3, uuid4 = uuid.uuid4(), uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+
+
+def uuid_func(arg: uuid.UUID = default_uuid1, /, opt: uuid.UUID = default_uuid2):
+    click.echo(f"{arg.hex} {opt.hex}")
+
+
+# Check each type as both arg and option
+# Funcion, args, expected text
+TESTCASES = [
+    # str
+    (str_func, [], "a b\n"),
+    (str_func, ["x"], "x b\n"),
+    (str_func, ["--opt", "y"], "a y\n"),
+    (str_func, ["x", "--opt", "y"], "x y\n"),
+    # Bool: Used as flag for options, otherwise arg.
+    (bool_func, [], "False False\n"),
+    (bool_func, ["True"], "True False\n"),
+    (bool_func, ["--opt"], "False True\n"),
+    (bool_func, ["True", "--opt"], "True True\n"),
+    # int
+    (int_func, [], "0 1\n"),
+    (int_func, ["2"], "2 1\n"),
+    (int_func, ["--opt", "3"], "0 3\n"),
+    (int_func, ["5", "--opt", "6"], "5 6\n"),
+    # float
+    (float_func, [], "0.0 1.0\n"),
+    (float_func, ["2"], "2.0 1.0\n"),
+    (float_func, ["--opt", "3.5"], "0.0 3.5\n"),
+    (float_func, ["0.5", "--opt", "3"], "0.5 3.0\n"),
+    # path
+    (path_func, [], "a b\n"),
+    (path_func, ["/tmp/c"], "c b\n"),
+    (path_func, ["--opt", "/tmp/d"], "a d\n"),
+    (path_func, ["/tmp/c", "--opt", "/tmp/d"], "c d\n"),
+    # datetime
+    (datetime_func, [], "2000 2001\n"),
+    (datetime_func, ["2010-02-03"], "2010 2001\n"),
+    (datetime_func, ["--opt", "2020-02-03"], "2000 2020\n"),
+    (datetime_func, ["2010-02-03", "--opt", "2020-02-03"], "2010 2020\n"),
+    # uuid
+    (uuid_func, [], f"{default_uuid1.hex} {default_uuid2.hex}\n"),
+    (uuid_func, [uuid3.hex], f"{uuid3.hex} {default_uuid2.hex}\n"),
+    (uuid_func, ["--opt", uuid4.hex], f"{default_uuid1.hex} {uuid4.hex}\n"),
+    (uuid_func, [uuid3.hex, "--opt", uuid4.hex], f"{uuid3.hex} {uuid4.hex}\n"),
+]
+
+
+@pytest.mark.parametrize("func, args, expected", TESTCASES)
+def test_args(func: AnyCallable, args: list[str], expected: str):
+    app = CLIApplication()
+
+    cmd = app.command(func)
+
+    runner = CliRunner()
+    res = runner.invoke(cmd, args)
+    assert res.exit_code == 0
+    assert res.output == expected

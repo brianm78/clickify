@@ -10,6 +10,7 @@ from clickify.handler.clicktypes import ClickTypeHandler
 from clickify.handler.registry import HandlerRegistry
 from clickify.handler.sequence import SequenceParamHandler
 from clickify.handler.union import NullableParamHandler
+from clickify.types import FileBinaryRead, FileBinaryWrite, FileText, FileTextWrite
 
 
 def get_default_registry() -> HandlerRegistry:
@@ -26,11 +27,20 @@ def get_default_registry() -> HandlerRegistry:
     default_registry.register_handler(ClickTypeHandler(click.FLOAT), annotation=float)
     default_registry.register_handler(ClickTypeHandler(click.STRING), annotation=str)
     default_registry.register_handler(ClickTypeHandler(click.UUID), annotation=uuid.UUID)
-    default_registry.register_handler(ClickTypeHandler(click.Path()), annotation=Path)
+    default_registry.register_handler(ClickTypeHandler(click.Path(path_type=Path)), annotation=Path)
     default_registry.register_handler(ClickTypeHandler(click.DateTime()), annotation=datetime.datetime)
+    default_registry.register_handler(ClickTypeHandler(click.File("r")), annotation=FileText)
+    default_registry.register_handler(ClickTypeHandler(click.File("rb")), annotation=FileBinaryRead)
+    default_registry.register_handler(ClickTypeHandler(click.File("w")), annotation=FileTextWrite)
+    default_registry.register_handler(ClickTypeHandler(click.File("wb")), annotation=FileBinaryWrite)
 
-    # Finally, Sequence[T] / T | None cases
+    # Sequence[T] / T | None cases
     default_registry.register_handler(SequenceParamHandler(default_registry))
     default_registry.register_handler(NullableParamHandler(default_registry))
+
+    # click.Context
+    @default_registry.register()
+    def context_handler() -> click.Context:
+        return click.get_current_context()
 
     return default_registry

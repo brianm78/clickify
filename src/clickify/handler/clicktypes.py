@@ -1,14 +1,12 @@
-import datetime
 import typing
-import uuid
-from pathlib import Path
 
 import click
 import click.types
 
 from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import HandlerResult, ParamHandler
-from clickify.handler.registry import HandlerRegistry
+
+# TODO: Allow TypeOptions annotation.  Eg. for Path(readable=False) etc.
 
 
 class ClickTypeHandler(ParamHandler):
@@ -25,17 +23,3 @@ class ClickTypeHandler(ParamHandler):
     def get(self, info: ParamInfo) -> HandlerResult:
         opts = self.opts if info.is_argument else self.option_opts
         return HandlerResult(info, [info.to_click_parameter(type=self.clicktype, **opts)])
-
-
-def register_click_types(reg: HandlerRegistry):
-    reg.register_handler(ClickTypeHandler(click.BOOL, dict(is_flag=True)), annotation=bool)
-    reg.register_handler(ClickTypeHandler(click.INT), annotation=int)
-    reg.register_handler(ClickTypeHandler(click.FLOAT), annotation=float)
-    reg.register_handler(ClickTypeHandler(click.STRING), annotation=str)
-    reg.register_handler(ClickTypeHandler(click.UUID), annotation=uuid.UUID)
-    reg.register_handler(ClickTypeHandler(click.Path()), annotation=Path)
-    reg.register_handler(ClickTypeHandler(click.DateTime()), annotation=datetime.datetime)
-
-    @reg.register()
-    def context_handler() -> click.Context:
-        return click.get_current_context()
