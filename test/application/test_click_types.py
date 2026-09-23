@@ -12,7 +12,7 @@ import pytest
 from click.testing import CliRunner
 
 from clickify import CLIApplication
-from clickify.types import AnyCallable
+from clickify.types import AnyCallable, FileBinaryRead, FileBinaryWrite, FileText, FileTextWrite
 
 
 # TODO: Test File
@@ -110,3 +110,67 @@ def test_args(func: AnyCallable, args: list[str], expected: str):
     res = runner.invoke(cmd, args)
     assert res.exit_code == 0
     assert res.output == expected
+
+
+def test_file_read_text(tmp_path: Path):
+    app = CLIApplication()
+
+    @app.command()
+    def file(f: FileText):
+        click.echo(repr(f.read()))
+
+    path = tmp_path / "file.txt"
+    path.write_text("foo")
+
+    runner = CliRunner()
+    res = runner.invoke(file, [str(path)])
+    assert res.exit_code == 0
+    assert res.output == "'foo'\n"
+
+
+def test_file_write_text(tmp_path: Path):
+    app = CLIApplication()
+
+    @app.command()
+    def file(f: FileTextWrite):
+        f.write("foo")
+
+    path = tmp_path / "file.txt"
+
+    runner = CliRunner()
+    res = runner.invoke(file, [str(path)])
+    assert res.exit_code == 0
+    assert path.exists()
+    assert path.read_text() == "foo"
+
+
+def test_file_read_binary(tmp_path: Path):
+    app = CLIApplication()
+
+    @app.command()
+    def file(f: FileBinaryRead):
+        click.echo(repr(f.read()))
+
+    path = tmp_path / "file.txt"
+    path.write_bytes(b"foo")
+
+    runner = CliRunner()
+    res = runner.invoke(file, [str(path)])
+    assert res.exit_code == 0
+    assert res.output == "b'foo'\n"
+
+
+def test_file_write_binary(tmp_path: Path):
+    app = CLIApplication()
+
+    @app.command()
+    def file(f: FileBinaryWrite):
+        f.write(b"foo")
+
+    path = tmp_path / "file.txt"
+
+    runner = CliRunner()
+    res = runner.invoke(file, [str(path)])
+    assert res.exit_code == 0
+    assert path.exists()
+    assert path.read_bytes() == b"foo"

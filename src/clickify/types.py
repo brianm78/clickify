@@ -1,4 +1,3 @@
-import io
 import typing
 from collections.abc import Callable
 from enum import Enum, auto
