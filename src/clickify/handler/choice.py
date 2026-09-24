@@ -18,7 +18,7 @@ class ChoiceTypeHandler(ParamHandler):
     def get(self, info: ParamInfo) -> HandlerResult | None:
         annotation, _meta = unwrap_annotation(info.annotation, resolve_generic=False)
 
-        callback: Callable[dict[str, typing.Any], typing.Any] | None = None
+        callback: Callable[[dict[str, typing.Any]], typing.Any] | None = None
         # Handle Literal[] / Enum types as a click.Choice (including as type aliases)
         if isinstance(annotation, type) and issubclass(annotation, enum.Enum):
             choicetype = click.Choice(e.name for e in annotation)

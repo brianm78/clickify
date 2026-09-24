@@ -49,10 +49,8 @@ class FuncInfo[T]:
         pos_args = []
         keyword_args = {}
         for param in self.params:
-            val = kwargs.pop(param.name, param.default)
-            if val is UNSET:
-                # Sanity check: Should be prevented earlier by click
-                raise Exception(f"Required parameter missing default: {param.name}")
+            # TODO: allow missing params?
+            val = kwargs[param.name]
 
             if param.is_positional:
                 if param.is_varargs:

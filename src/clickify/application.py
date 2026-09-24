@@ -12,16 +12,29 @@ from clickify.types import AnyCallable
 class CLIApplication(ClickifyGroup):
     """Hold registry of handled types and other app settings."""
 
-    def __init__(self, registry: HandlerRegistry | None = None, **kwargs: typing.Any):
+    def __init__(self, registry: HandlerRegistry | None = None, invoke_direct: bool = True, **kwargs: typing.Any):
         """Create new toplevel CLI application.
         Additional keyword arguments will be passed through to the click.Group constructor.
+
+        Arguments:
+            registry:  Handler registry to use.  If omitted, a default registry is created.
+            invoke_direct:
+                Mirror Typer behaviour where directly invoking the root application when only
+                a single command is registered will invoke that command directly.
         """
         if registry is None:
             registry = get_default_registry()
         super().__init__(registry=registry, **kwargs)
         self.group_class = ClickifyGroup
+        self.invoke_direct = invoke_direct
 
         self.register = registry.register
+
+    def __call__(self, *args: typing.Any, **kwargs: typing.Any):
+        if self.invoke_direct and len(self.commands) == 1:
+            (cmd,) = self.commands.values()
+            return cmd(*args, **kwargs)
+        return super().__call__(*args, **kwargs)
 
     @classmethod
     def with_callback(

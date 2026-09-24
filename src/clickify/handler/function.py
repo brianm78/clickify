@@ -48,7 +48,7 @@ class FunctionHandler[T](ParamHandler):
             # Passed in parameters take priority over decorator annotation
             self.override_params.update(override_params)
 
-    def _handle_param(self, info: ParamInfo):
+    def _handle_param(self, info: ParamInfo) -> HandlerResult:
         # Allow arguments / click annotations to override signature.
         if info.name in self.override_params:
             return HandlerResult(info, [self.override_params[info.name]])
@@ -60,17 +60,13 @@ class FunctionHandler[T](ParamHandler):
 
         # TODO: allow prefixing opts with paraminfo argname?
         if self.multi_arg:
-            handler_res = [self._handle_param(paraminfo) for paraminfo in self.funcinfo.params]
+            handler_results = [self._handle_param(paraminfo) for paraminfo in self.funcinfo.params]
 
         else:
             # The function annotation only provides the type.  The rest comes from the signature of the command
             # function (ie. name, decls, default etc)
             paraminfo = replace(info, annotation=self.funcinfo.params[0].annotation)
-            handler_res = [self._handle_param(paraminfo)]
-
-        if any(x is None for x in handler_res):
-            return None
-        handler_results: list[HandlerResult] = typing.cast(list[HandlerResult], handler_res)
+            handler_results = [self._handle_param(paraminfo)]
 
         def callback(opts: dict[str, typing.Any]) -> T:
             resolved_params: dict[str, typing.Any] = {}

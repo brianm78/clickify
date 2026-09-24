@@ -44,7 +44,6 @@ def test_varargs_args():
     assert not kwonly.is_varargs
     assert kw_nodef.click_defaults["required"]
     assert not kwonly.is_argument
-    assert kwonly.default is True
     assert kwonly.name == "kwonly"
     assert kwonly.annotation is float
     assert kwonly.long_decls == ["--kwonly"]

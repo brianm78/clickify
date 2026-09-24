@@ -1,6 +1,6 @@
 import inspect
 import typing
-from dataclasses import dataclass, field, replace
+from dataclasses import _MISSING_TYPE, Field, dataclass, field, replace
 
 import click
 from click._utils import UNSET
@@ -22,7 +22,6 @@ class ParamInfo:
     is_positional: bool = False
     is_varargs: bool = False
 
-    default: typing.Any | typing.Literal[UNSET] = UNSET
     short_decls: list[str] = field(default_factory=list)
     long_decls: list[str] = field(default_factory=list)
 
@@ -49,6 +48,30 @@ class ParamInfo:
         return decls
 
     @classmethod
+    def from_dataclass_field(cls, field: Field, docinfo: DocInfo) -> typing.Self:
+        """Construct from dataclass field.
+
+        All items treated as Options
+        """
+
+        arginfo = cls(name=field.name, annotation=field.type)
+
+        if isinstance(field.default, _MISSING_TYPE):
+            if isinstance(field.default_factory, _MISSING_TYPE):
+                arginfo.click_defaults["required"] = True
+            else:
+                arginfo.click_defaults["default"] = field.default_factory()
+        else:
+            arginfo.click_defaults["default"] = field.default
+
+        param_doc = docinfo.params.get(field.name)
+        if param_doc is not None:
+            arginfo.click_defaults["help"] = param_doc.description
+            arginfo.long_decls = param_doc.long_opts
+            arginfo.short_decls = param_doc.short_opts
+        return arginfo
+
+    @classmethod
     def from_param(
         cls,
         param: inspect.Parameter,
@@ -72,13 +95,14 @@ class ParamInfo:
         arginfo = cls(
             name=param.name,
             annotation=param.annotation,
-            default=UNSET if param.default is inspect._empty else param.default,
         )
 
-        arginfo.click_defaults["required"] = param.default is inspect._empty
-
-        if arginfo.default is not UNSET:
-            arginfo.click_defaults["default"] = arginfo.default
+        if param.default is inspect._empty:
+            arginfo.click_defaults["required"] = True
+            arginfo.is_argument = False
+        else:
+            arginfo.click_defaults["default"] = param.default
+            arginfo.is_argument = True
 
         match param.kind:
             case inspect.Parameter.VAR_KEYWORD:
@@ -91,7 +115,7 @@ class ParamInfo:
                 arginfo.click_defaults["required"] = False
                 arginfo.click_defaults["nargs"] = -1
                 arginfo.annotation = list[arginfo.annotation]  # type: ignore
-                assert arginfo.default is UNSET
+                assert param.default is inspect._empty
 
             case inspect.Parameter.POSITIONAL_ONLY:
                 # Params before *args don't get marked as POSITIONAL_ONLY, even though they effectively are.
@@ -104,7 +128,7 @@ class ParamInfo:
 
             case inspect.Parameter.POSITIONAL_OR_KEYWORD:
                 # Default to option unless no default
-                arginfo.is_argument = arginfo.default is UNSET
+                arginfo.is_argument = param.default is inspect._empty
 
             case inspect.Parameter.KEYWORD_ONLY:
                 arginfo.is_argument = False
