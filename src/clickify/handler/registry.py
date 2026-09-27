@@ -36,7 +36,11 @@ def match_annotation(
         if is_argument is not None and info.is_argument != is_argument:
             return False
 
-        return (info.annotation == annotation) and ((extra_predicate is None) or extra_predicate(info))
+        param_annotation = info.annotation
+        if ignore_annotated:
+            param_annotation, _meta = unwrap_annotation(param_annotation, resolve_alias=False, resolve_generic=False)
+
+        return (param_annotation == annotation) and ((extra_predicate is None) or extra_predicate(info))
 
     return match
 

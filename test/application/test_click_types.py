@@ -28,6 +28,11 @@ def int_func(arg: int = 0, /, opt: int = 1):
     click.echo(f"{arg} {opt}")
 
 
+def int_func(arg: int = 0, /, opt: int = 1):
+    assert isinstance(arg, int)
+    assert isinstance(opt, int)
+    click.echo(f"{arg} {opt}")
+
 def float_func(arg: float = 0.0, /, opt: float = 1.0):
     assert isinstance(arg, float)
     assert isinstance(opt, float)
@@ -77,6 +82,8 @@ TESTCASES = [
     (int_func, ["2"], "2 1\n"),
     (int_func, ["--opt", "3"], "0 3\n"),
     (int_func, ["5", "--opt", "6"], "5 6\n"),
+    # Intrange
+    # 
     # float
     (float_func, [], "0.0 1.0\n"),
     (float_func, ["2"], "2.0 1.0\n"),

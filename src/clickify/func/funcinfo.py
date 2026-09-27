@@ -7,8 +7,6 @@ import inspect
 import typing
 from dataclasses import dataclass
 
-from click._utils import UNSET
-
 from clickify.func.docinfo import DocInfo
 from clickify.func.paraminfo import ParamInfo
 from clickify.utils import AnnotationType

@@ -3,7 +3,6 @@ import typing
 from dataclasses import _MISSING_TYPE, Field, dataclass, field, replace
 
 import click
-from click._utils import UNSET
 
 from clickify import utils
 from clickify.func.docinfo import DocInfo

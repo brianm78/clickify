@@ -8,12 +8,12 @@ from pathlib import Path
 import click.types
 import pytest
 
-from clickify import ClickOptions
 from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import NotHandledException
 from clickify.handler.click_annotated import ParamNameMismatch
 from clickify.handler.default_registry import get_default_registry
 from clickify.handler.registry import HandlerRegistry
+from clickify.types import ClickOptions
 
 enumtype = Enum("enumtype", "a b c")
 
@@ -32,8 +32,9 @@ TEST_CASES: list[tuple[object, type[click.types.ParamType], dict[str, typing.Any
     (tuple[int, int, int], click.types.IntParamType, dict(nargs=3), dict(nargs=3)),
     (tuple[int], click.types.IntParamType, dict(nargs=1), dict(nargs=1)),
     (Sequence[int], click.types.IntParamType, dict(nargs=-1), dict(multiple=True)),
-    # Annotation tests: Options replace options, while annotating with parameter should replace it entirely.
-    (typing.Annotated[int, ClickOptions(type=str)], click.types.StringParamType, {}, {}),
+    # Annotation tests: Options replace passed values to click,
+    # while annotating with parameter should replace the whole click Argument/Option
+    (typing.Annotated[int, ClickOptions(type=click.STRING)], click.types.StringParamType, {}, {}),
     (typing.Annotated[str, click.Option(["test", "--foo"], type=click.types.BOOL)], click.types.BoolParamType, {}, {}),
     #
     (typing.Literal["a", "b"], click.types.Choice, {}, {}),
