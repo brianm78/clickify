@@ -29,8 +29,6 @@ def test_dataclass():
     def cmd(obj: Args):
         click.echo(obj)
 
-    print(cmd.params)
-
     runner = CliRunner()
     res = runner.invoke(cmd, [])
     assert res.exit_code != 0

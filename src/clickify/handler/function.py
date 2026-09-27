@@ -6,7 +6,7 @@ from dataclasses import replace
 import click
 
 from clickify.func import FuncInfo, ParamInfo
-from clickify.handler.base import HandlerResult, ParamHandler
+from clickify.handler.base import HandlerResult, NotHandledException, ParamHandler
 from clickify.types import Inferred
 
 if typing.TYPE_CHECKING:
@@ -58,15 +58,20 @@ class FunctionHandler[T](ParamHandler):
     def get(self, info: ParamInfo) -> HandlerResult | None:
         """We ignore paraminfo, and create a new set of parameters here."""
 
-        # TODO: allow prefixing opts with paraminfo argname?
-        if self.multi_arg:
-            handler_results = [self._handle_param(paraminfo) for paraminfo in self.funcinfo.params]
+        try:
+            # TODO: allow prefixing opts with paraminfo argname?
+            if self.multi_arg:
+                handler_results = [self._handle_param(paraminfo) for paraminfo in self.funcinfo.params]
 
-        else:
-            # The function annotation only provides the type.  The rest comes from the signature of the command
-            # function (ie. name, decls, default etc)
-            paraminfo = replace(info, annotation=self.funcinfo.params[0].annotation)
-            handler_results = [self._handle_param(paraminfo)]
+            else:
+                # The function annotation only provides the type.  The rest comes from the signature of the command
+                # function (ie. name, decls, default etc)
+                paraminfo = replace(info, annotation=self.funcinfo.params[0].annotation)
+                handler_results = [self._handle_param(paraminfo)]
+        except NotHandledException as ex:
+            # If one of the types we're registered as fails, we want to report the error, rather
+            # than just say we don't handle the top-level type.
+            raise Exception(f"A subparameter for handler function was not registered: {ex}") from ex
 
         def callback(opts: dict[str, typing.Any]) -> T:
             resolved_params: dict[str, typing.Any] = {}

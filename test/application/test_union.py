@@ -18,7 +18,6 @@ def test_union():
     assert res.output == "1 2\n"
 
     res = runner.invoke(cmd, ["1.0", "foo"])
-    print(res.output)
     assert res.exit_code == 0
     assert res.output == "1.0 'foo'\n"
 

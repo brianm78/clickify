@@ -36,6 +36,16 @@ class CLIApplication(ClickifyGroup):
             return cmd(*args, **kwargs)
         return super().__call__(*args, **kwargs)
 
+    #
+    def callback(self):
+        """Register function as main callback."""
+        # TODO: Can we change params / callback after the fact?
+        # Alternatively, defer group creation?
+
+    # TODO: Has issue that registering etc may happen after create func handler.
+    # Maybe just implement by having a toplevel group.
+    # Ie. @app.group(...)
+    #     def toplevel(): ...
     @classmethod
     def with_callback(
         cls,

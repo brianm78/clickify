@@ -16,6 +16,9 @@ class DataclassParamHandler(ParamHandler):
         self.registry = registry
 
     def get(self, info: ParamInfo) -> HandlerResult | None:
+        # Note: ignores any assigned default value.
+        # Should we do something with this?  Eg. take defaults from it, or call dataclasses.replace() on it?
+        # to construct final result?
         dataclass_cls, meta = unwrap_annotation(info.annotation, resolve_alias=True, resolve_generic=False)
         if not dataclasses.is_dataclass(dataclass_cls):
             return None
