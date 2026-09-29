@@ -18,7 +18,8 @@ class ClickAnnotatedParameterHandler(ParamHandler):
     """Allow entirely replacing with a given Parameter."""
 
     def get(self, info: ParamInfo) -> HandlerResult:
-        ann, meta = unwrap_annotation(info.annotation, False, False)
+
+        ann, meta = unwrap_annotation(info.annotation, resolve_alias=False, resolve_generic=False)
         for elem in meta:
             if isinstance(elem, click.Parameter):
                 # Name needs to match to pair up with variable name.

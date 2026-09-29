@@ -40,7 +40,7 @@ class ParamInfo:
     def decls(self):
         decls = [self.name]
         # Create a default long option if none defined.
-        if not self.is_argument and not self.long_decls and not self.short_decls:
+        if not self.is_argument and not self.long_decls:
             decls.append(utils.click_option_name(self.name))
         decls += self.long_decls
         decls += self.short_decls

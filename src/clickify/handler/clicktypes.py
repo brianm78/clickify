@@ -32,7 +32,7 @@ class ClickTypeHandler(ParamHandler):
         self.type_options: dict[str, typing.Any] = type_options if type_options is not None else {}
         self.opts = opts
 
-    def get(self, info: ParamInfo) -> HandlerResult:
+    def get(self, info: ParamInfo) -> HandlerResult | None:
         ann, meta = unwrap_annotation(info.annotation)
         type_opts = dict(self.type_options)
         opts = dict(self.opts)

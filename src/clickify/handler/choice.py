@@ -11,26 +11,40 @@ import click.types
 
 from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import HandlerResult, ParamHandler
+from clickify.handler.clicktypes import ClickTypeHandler
+from clickify.types import ClickOptions, TypeOptions
 from clickify.typeutil import unwrap_annotation
 
 
-class ChoiceTypeHandler(ParamHandler):
+class ChoiceTypeHandler(ClickTypeHandler):
+    def __init__(self, type_options: TypeOptions | None = None, **opts: typing.Any) -> None:
+        super().__init__(click.Choice, type_options, **opts)
+
     def get(self, info: ParamInfo) -> HandlerResult | None:
-        annotation, _meta = unwrap_annotation(info.annotation, resolve_generic=False)
+        annotation, meta = unwrap_annotation(info.annotation, resolve_generic=False)
+
+        # Handle click / type opts.
+        type_opts = dict(self.type_options)
+        opts = dict(self.opts)
+        for item in meta:
+            if isinstance(item, TypeOptions):
+                type_opts.update(item)
+            elif isinstance(item, ClickOptions):
+                opts.update(item)
 
         callback: Callable[[dict[str, typing.Any]], typing.Any] | None = None
         # Handle Literal[] / Enum types as a click.Choice (including as type aliases)
         if isinstance(annotation, type) and issubclass(annotation, enum.Enum):
-            choicetype = click.Choice(e.name for e in annotation)
+            choicetype = click.Choice([e.name for e in annotation], **type_opts)
 
             def callback(opts: dict[str, typing.Any]):
                 val = opts[info.name]
                 return annotation[val]
 
         elif typing.get_origin(annotation) is typing.Literal:
-            choicetype = click.Choice(typing.get_args(annotation))
+            choicetype = click.Choice(typing.get_args(annotation), **type_opts)
             callback = None
         else:
             return None
 
-        return HandlerResult(info, [info.to_click_parameter(type=choicetype)], callback)
+        return HandlerResult(info, [info.to_click_parameter(type=choicetype, **opts)], callback)

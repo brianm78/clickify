@@ -16,13 +16,15 @@ def test_cmd():
         click.echo(f"{arg} {opt}")
         return arg, opt
 
+    assert hasattr(foo, "cmd")
+    cmd = getattr(foo, "cmd")
     assert isinstance(foo, types.FunctionType)
-    assert isinstance(foo.cmd, click.Command)
+    assert isinstance(cmd, click.Command)
     # Should be callable
     assert foo("foo", 123) == ("foo", 123)
 
     runner = CliRunner()
-    res = runner.invoke(foo.cmd, ["a", "--opt", "1"])
+    res = runner.invoke(cmd, ["a", "--opt", "1"])
     assert res.exit_code == 0
     assert res.output == "a 1\n"
 
@@ -39,13 +41,14 @@ def test_group():
         click.echo(f"{arg} {opt}")
         return arg, opt
 
+    cmd = getattr(foo, "cmd")
     assert isinstance(foo, types.FunctionType)
-    assert isinstance(foo.cmd, click.Command)
+    assert isinstance(cmd, click.Command)
     # Should be callable
     assert foo("foo", 123) == ("foo", 123)
 
     runner = CliRunner()
-    res = runner.invoke(foo.cmd, ["a", "--opt", "1"])
+    res = runner.invoke(cmd, ["a", "--opt", "1"])
     assert res.exit_code == 0
     assert res.output == "a 1\n"
 

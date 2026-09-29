@@ -1,26 +1,39 @@
+import bisect
 import inspect
+import operator
 import typing
 from collections.abc import Callable
 
 from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import HandlerResult, NotHandledException, ParamHandler, ParamPredicate
 from clickify.handler.function import FunctionHandler
-from clickify.types import AnyCallable, Decorator, Inferred, Unspecified
+from clickify.types import AnyCallable, Decorator, Inferred
 from clickify.typeutil import unwrap_annotation
 from clickify.utils import AnnotationType
+
+# User-added items will take priority over builtins.
+# Otherwise, ordered by definition order (earliest tried first)
+BUILTIN_PRIORITY = 100
+DEFAULT_PRIORITY = 0
 
 
 def match_annotation(
     annotation: AnnotationType,
-    ignore_annotated: bool = True,
+    ignore_alias: bool = False,
     is_argument: bool | None = None,
     extra_predicate: ParamPredicate | None = None,
 ) -> ParamPredicate:
-    """Does the annotation exactly match the registered type (ignoring Annotated[])
+    """Construct a match predicate for an annotation.
+
+    Will match if the annotation is equal (according to equality) with the registered annotation
+    (ie. not a subclass check etc), but will not include Annotated[...] and optionally
+    may ignore type aliasing.
 
     Arguments:
         annotation: Annotation to match
-        ignore_annotated:  Treat `Annotated[T, ...]` as just `T`
+        ignore_alias:
+            Don't treat a type alias as a different type from the aliased type.
+            Ie. `type Foo = str` will match a `str` annotation.
         is_argument:
             If True/False, only match if the parameter is an argument.
             If None, matches either way.
@@ -28,17 +41,15 @@ def match_annotation(
             Any extra predicate function taking the paraminfo object.
 
     """
-    if ignore_annotated:
-        annotation, _meta = unwrap_annotation(annotation, resolve_alias=False, resolve_generic=False)
+    _orig = annotation
+    annotation, _meta = unwrap_annotation(annotation, resolve_alias=ignore_alias, resolve_generic=False)
 
     def match(info: ParamInfo) -> bool:
         # Require exact match.
         if is_argument is not None and info.is_argument != is_argument:
             return False
 
-        param_annotation = info.annotation
-        if ignore_annotated:
-            param_annotation, _meta = unwrap_annotation(param_annotation, resolve_alias=False, resolve_generic=False)
+        param_annotation, _meta = unwrap_annotation(info.annotation, resolve_alias=ignore_alias, resolve_generic=False)
 
         return (param_annotation == annotation) and ((extra_predicate is None) or extra_predicate(info))
 
@@ -67,12 +78,17 @@ class HandlerRegistry:
     """
 
     def __init__(self) -> None:
-        # TODO: Specify priority?
-        self.handlers: list[tuple[ParamPredicate, ParamHandler]] = []
+        # priority, predicate, handler
+        self.handlers: list[tuple[int, ParamPredicate, ParamHandler]] = []
 
     @typing.overload
     def register(
-        self, *, annotation: AnnotationType | Inferred = Inferred.value, multi_arg: bool | Inferred = Inferred.value
+        self,
+        *,
+        annotation: AnnotationType | Inferred = Inferred.value,
+        is_argument: bool | None = None,
+        multi_arg: bool | Inferred = Inferred.value,
+        priority: int = DEFAULT_PRIORITY,
     ) -> Decorator: ...
 
     @typing.overload
@@ -81,7 +97,9 @@ class HandlerRegistry:
         func: AnyCallable,
         *,
         annotation: AnnotationType | Inferred = Inferred.value,
+        is_argument: bool | None = None,
         multi_arg: bool | Inferred = Inferred.value,
+        priority: int = DEFAULT_PRIORITY,
     ) -> None: ...
 
     def register(
@@ -90,7 +108,9 @@ class HandlerRegistry:
         *,
         annotation: AnnotationType | Inferred = Inferred.value,
         is_argument: bool | None = None,
+        ignore_alias: bool = False,
         multi_arg: bool | Inferred = Inferred.value,
+        priority: int = DEFAULT_PRIORITY,
         # predicate
     ) -> Decorator | None:
         """Decorator to register a function that will handle a particular annotation.
@@ -114,9 +134,15 @@ class HandlerRegistry:
                 If not provided, will be inferred from the return type of the function.
             is_argument:
                 If non-None, only match where the param is an Argument type (when True) or Option type (when False)
+            ignore_alias:
+                Treat an aliased type as equivalent to any type matching/aliased to the underlying type
             multi_arg:
                 Specify whether multiargument mode is used.
                 If not provided, will be inferred based on whether the function takes a single argument.
+            priority:
+                Determines whether this will be tried before or after other items.
+                Lower values are tried first, only trying items with higher priority if these do not handle the item.
+                For items with the same priority, items are tried in the order they were added.
         """
 
         def decorator[T: Callable[..., typing.Any]](func: T) -> T:
@@ -126,7 +152,11 @@ class HandlerRegistry:
             if handled_annotation is inspect._empty:
                 raise Exception("No annotation specified, and function does not provide a return annotation")
 
-            self.register_handler(handler, predicate=match_annotation(handled_annotation, is_argument=is_argument))
+            self.register_handler(
+                handler,
+                predicate=match_annotation(handled_annotation, is_argument=is_argument, ignore_alias=ignore_alias),
+                priority=priority,
+            )
             return func
 
         if func is not None:
@@ -138,9 +168,8 @@ class HandlerRegistry:
     def register_handler(
         self,
         handler: ParamHandler,
-        predicate: ParamPredicate | None = None,
-        annotation: AnnotationType | Unspecified = Unspecified.value,
-        is_argument: bool | None = None,
+        predicate: ParamPredicate = always_check,
+        priority: int = DEFAULT_PRIORITY,
     ) -> None:
         """Register a ParamHandler, optionally requiring a predicate to check before trying.
 
@@ -150,24 +179,18 @@ class HandlerRegistry:
             predicate:
                 Optionally a check on the parameter as to whether this handler applies.
                 If omitted, will always try the handler, skipping only if it raises NotHandled
-            annotation:
-                Shortcut for a predicate that checks for a matching annotation
-                (Checks via ==, so require exact match)
-            is_argument:
-                If non-None, add a predicate that checks the argument type matches either Argument or Option.
+            priority:
+                Determines order handlers are tried.  Lower values are tried first.
+                Items with same priority are tried in order of definition.
         """
-        if not isinstance(annotation, Unspecified):
-            predicate = match_annotation(annotation, is_argument=is_argument, extra_predicate=predicate)
-        if predicate is None:
-            predicate = always_check
-        self.handlers.append((predicate, handler))
+        bisect.insort_right(self.handlers, (priority, predicate, handler), key=operator.itemgetter(0))
 
     def handle_param(self, info: ParamInfo) -> HandlerResult:
         """Find handler for parameter, and return result.
 
         If not found, raises NotHandledException
         """
-        for pred, handler in self.handlers:
+        for _pri, pred, handler in self.handlers:
             if pred(info):
                 try:
                     res = handler.get(info)

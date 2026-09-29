@@ -6,6 +6,7 @@ from clickify.utils import AnnotationType
 
 def unwrap_annotation(
     annotation: AnnotationType,
+    resolve_annotated: bool = True,
     resolve_alias: bool = True,
     resolve_generic: bool = True,
     max_depth: int = 100,
@@ -13,6 +14,9 @@ def unwrap_annotation(
     """Strip Annotated[], and optionally TypeAlias and GenericAliases and return the underlying type.
 
     Arguments:
+        resolve_annotated:
+            Remove any Annotated[T, metadata, ...] annotation, and return T and metadata seperately.
+            If False, metadata will always be empty.
         resolve_alias:
             If True, aliases will be converted to the aliased type.
             Otherwise will return the first alias we reach.
@@ -32,7 +36,7 @@ def unwrap_annotation(
     original = annotation
     metadata = []
     for i in range(max_depth):
-        if typing.get_origin(annotation) is typing.Annotated:
+        if resolve_annotated and typing.get_origin(annotation) is typing.Annotated:
             annotation, *metadata = typing.get_args(annotation)
 
         elif resolve_alias and isinstance(annotation, typing.TypeAliasType):
@@ -41,6 +45,7 @@ def unwrap_annotation(
         elif resolve_generic and isinstance(annotation, types.GenericAlias):
             annotation = typing.get_origin(annotation)
         else:
+            # No change - may stop.
             break
     else:
         # Potentially recursive type definition

@@ -55,7 +55,7 @@ def registry() -> Generator[HandlerRegistry]:
 
 @pytest.mark.parametrize("annotation,expected,expected_arg_props,expected_opt_props", TEST_CASES)
 @pytest.mark.parametrize("is_arg", [True, False])
-def test_args(
+def test_testcases(
     registry: HandlerRegistry,
     annotation: object,
     expected: type[click.types.ParamType],
@@ -90,6 +90,6 @@ def test_annotated_wrongname(registry: HandlerRegistry):
     with pytest.raises(ParamNameMismatch):
         _ = registry.handle_param(info)
 
-    annotation = typing.Annotated[str, click.Option(["foo", "--bar"], type=click.types.BOOL)]
-    info = ParamInfo("foo", annotation, is_argument=True)
+    annotation2 = typing.Annotated[str, click.Option(["foo", "--bar"], type=click.types.BOOL)]
+    info = ParamInfo("foo", annotation2, is_argument=True)
     _ = registry.handle_param(info)

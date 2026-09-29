@@ -6,6 +6,7 @@ from click.testing import CliRunner
 
 from clickify import CLIApplication, ParamInfo
 from clickify.handler.base import HandlerResult, ParamHandler
+from clickify.handler.registry import match_annotation
 
 type ComplexType = int
 type SimpleType = int
@@ -42,7 +43,7 @@ def app() -> Generator[CLIApplication]:
             param = info.to_click_parameter(type=click.IntRange(0, 10))
             return HandlerResult(info, [param])
 
-    app.registry.register_handler(ClassBasedHandler(), annotation=HandlerClassType)
+    app.registry.register_handler(ClassBasedHandler(), match_annotation(HandlerClassType))
     yield app
 
 

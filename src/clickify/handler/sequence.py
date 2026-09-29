@@ -31,8 +31,11 @@ class SequenceParamHandler(WrappingParamHandler):
         return None, ()
 
     def convert_param(self, info: ParamInfo) -> ParamInfo | None:
+
         basetype, args = self._get_seq_type(info.annotation)
+
         nargs = -1
+        argtype: AnnotationType = None
         if basetype is None:
             raise NotHandledException(f"Annotation {info.annotation} is not a sequence")
 
