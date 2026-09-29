@@ -6,18 +6,11 @@ from dataclasses import replace
 import click
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import HandlerResult, ParamHandler
+from clickify.handler.base import BaseParamHandler, HandlerResult
 from clickify.handler.registry import HandlerRegistry
 from clickify.typeutil import unwrap_annotation
 
-# TODO: Could we support T | U by creating a click type
-# that tries each handler in turn (in definition order), till one is successful?
-# Eg. int | str tries parsing as int, but on exception, uses click.STRING
-# Ie. subclass click.ParamType, get handlers for every type  (require only single param),
-# then use the click type of the Parameter, calling .convert till successful.
 
-
-# TODO:
 class UnionParamType[Tout, Tin](click.ParamType[Tout, Tin]):
     def __init__(self, params: Sequence[click.Parameter]):
         self.params = params
@@ -32,7 +25,7 @@ class UnionParamType[Tout, Tin](click.ParamType[Tout, Tin]):
         self.fail("Cannot convert {value!} to any of defined union types")
 
 
-class UnionParamHandler(ParamHandler):
+class UnionParamHandler(BaseParamHandler):
     """For Unions, try to convert each type in turn until one is successful.
 
     NOTE: Order matters.  `int | float` will produce an int (`2`) `"2"`, but `float | int` will produce `2.0`
@@ -45,7 +38,7 @@ class UnionParamHandler(ParamHandler):
     def __init__(self, registry: HandlerRegistry):
         self.registry = registry
 
-    def get(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult | None:
         ann, meta = unwrap_annotation(info.annotation, resolve_generic=False)
         if typing.get_origin(ann) is not typing.Union:
             return None

@@ -4,7 +4,7 @@ import click
 import click.types
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import HandlerResult, ParamHandler
+from clickify.handler.base import HandlerResult, BaseParamHandler
 from clickify.types import ClickOptions, TypeOptions
 from clickify.typeutil import unwrap_annotation
 
@@ -17,7 +17,7 @@ from clickify.typeutil import unwrap_annotation
 # (Or short_decls / long_decls)
 
 
-class ClickTypeHandler(ParamHandler):
+class ClickTypeHandler(BaseParamHandler):
     """Invoke a click.ParamType to handle the parameter.
 
     Note: May be annotated with TypeOptions / ClickOptions to pass custom options to the type/parameter
@@ -32,7 +32,7 @@ class ClickTypeHandler(ParamHandler):
         self.type_options: dict[str, typing.Any] = type_options if type_options is not None else {}
         self.opts = opts
 
-    def get(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult | None:
         ann, meta = unwrap_annotation(info.annotation)
         type_opts = dict(self.type_options)
         opts = dict(self.opts)

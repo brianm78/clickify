@@ -49,7 +49,7 @@ class ClickifyGroup(click.Group):
         toplevel_paraminfo = ParamInfo("<toplevel>", object)
         funchandler = FunctionHandler(self.registry, func, multi_arg=True, override_params=param_dict)
 
-        handlerresult = funchandler.get(toplevel_paraminfo)
+        handlerresult = funchandler(toplevel_paraminfo)
         if handlerresult is None:
             raise Exception("Failure in constructing toplevel function handler")
 

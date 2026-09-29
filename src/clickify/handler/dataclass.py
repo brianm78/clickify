@@ -4,18 +4,18 @@ import typing
 
 from clickify.func.docinfo import DocInfo
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import HandlerResult, ParamHandler
+from clickify.handler.base import BaseParamHandler, HandlerResult
 from clickify.handler.registry import HandlerRegistry
 from clickify.typeutil import unwrap_annotation
 
 
-class DataclassParamHandler(ParamHandler):
+class DataclassParamHandler(BaseParamHandler):
     """Construct a dataclass from its members, using docstring similarly to function docstring"""
 
     def __init__(self, registry: HandlerRegistry):
         self.registry = registry
 
-    def get(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult | None:
         # Note: ignores any assigned default value.
         # Should we do something with this?  Eg. take defaults from it, or call dataclasses.replace() on it?
         # to construct final result?

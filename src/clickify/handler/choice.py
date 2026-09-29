@@ -10,7 +10,7 @@ import click
 import click.types
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import HandlerResult, ParamHandler
+from clickify.handler.base import HandlerResult
 from clickify.handler.clicktypes import ClickTypeHandler
 from clickify.types import ClickOptions, TypeOptions
 from clickify.typeutil import unwrap_annotation
@@ -20,7 +20,7 @@ class ChoiceTypeHandler(ClickTypeHandler):
     def __init__(self, type_options: TypeOptions | None = None, **opts: typing.Any) -> None:
         super().__init__(click.Choice, type_options, **opts)
 
-    def get(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult | None:
         annotation, meta = unwrap_annotation(info.annotation, resolve_generic=False)
 
         # Handle click / type opts.

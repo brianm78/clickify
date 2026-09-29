@@ -5,12 +5,11 @@ import pytest
 from click.testing import CliRunner
 
 from clickify import CLIApplication, ParamInfo
-from clickify.handler.base import HandlerResult, ParamHandler
+from clickify.handler.base import HandlerResult
 from clickify.handler.registry import match_annotation
 
-type ComplexType = int
-type SimpleType = int
-type HandlerClassType = int
+type CombineType = int
+type HandlerType = int
 type ZeroArgsType = int
 
 
@@ -19,53 +18,56 @@ def app() -> Generator[CLIApplication]:
     app = CLIApplication()
 
     @app.registry.register()
-    def complex_handler(*args: int, flag: bool = False) -> ComplexType:
-        """Complex handler
+    def complex_handler(*args: int, only_odd: bool = False) -> CombineType:
+        """Requests multiple args, returns their sum or product
         Arguments:
             args: list of numbers
-            flag: If True, always returns zero. Otherwise return sum.
+            only_odd: [-o] If True, only sum odd values
         """
-        if flag:
-            return 0
+        if only_odd:
+            args = tuple(a for a in args if a % 2 != 0)
         return sum(args, start=0)
-
-    @app.registry.register()
-    def simple_handler(arg: int) -> SimpleType:
-        """Simple handler."""
-        return arg * 10
 
     @app.registry.register()
     def ZeroArgHandler() -> ZeroArgsType:
         return 42
 
-    class ClassBasedHandler(ParamHandler):
-        def get(self, info: ParamInfo) -> HandlerResult:
-            param = info.to_click_parameter(type=click.IntRange(0, 10))
-            return HandlerResult(info, [param])
+    def direct_handler(info: ParamInfo) -> HandlerResult | None:
+        param = info.to_click_parameter(type=click.IntRange(0, 10))
+        return HandlerResult(info, [param])
 
-    app.registry.register_handler(ClassBasedHandler(), match_annotation(HandlerClassType))
+    app.registry.register_handler(direct_handler, match_annotation(HandlerType))
     yield app
 
 
-def test_simple(app: CLIApplication):
-
+def test_extend(app: CLIApplication):
     @app.command()
-    def func(arg: SimpleType = 0, other: bool = False):
-        """test func
+    def func(x: CombineType, extra_option: bool = False):
+        """Test func
+
         Arguments:
-            arg: [--foo -x] Arg info
-            other: [-o] Flag
+
+            x: This docstring won't be used
+            extra_option: [-x] Extra option
         """
-        click.echo(f"{arg} {other}")
+        click.echo(f"{x} : {extra_option}")
 
     runner = CliRunner()
-    res = runner.invoke(func, ["--foo", "5"])
+    res = runner.invoke(func)
     assert res.exit_code == 0
-    assert res.output == "50 False\n"
+    assert res.output == "0 : False\n"
 
-    res = runner.invoke(func, ["-x", "1", "-o"])
+    res = runner.invoke(func, ["1", "2", "3"])
     assert res.exit_code == 0
-    assert res.output == "10 True\n"
+    assert res.output == "6 : False\n"
+
+    res = runner.invoke(func, ["1", "2", "3", "-o"])
+    assert res.exit_code == 0
+    assert res.output == "4 : False\n"
+
+    res = runner.invoke(func, ["1", "2", "3", "-o", "-x"])
+    assert res.exit_code == 0
+    assert res.output == "4 : True\n"
 
 
 def test_no_args(app: CLIApplication):
@@ -79,10 +81,10 @@ def test_no_args(app: CLIApplication):
     assert res.output == "42\n"
 
 
-def test_classbased(app: CLIApplication):
+def test_directhandler(app: CLIApplication):
 
     @app.command()
-    def func(arg: HandlerClassType):
+    def func(arg: HandlerType):
         """test func
         Arguments:
             arg: arg

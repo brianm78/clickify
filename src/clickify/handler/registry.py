@@ -5,7 +5,7 @@ import typing
 from collections.abc import Callable
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import HandlerResult, NotHandledException, ParamHandler, ParamPredicate
+from clickify.handler.base import HandlerResult, NotHandledException, ParamHandlerFunc, ParamPredicate
 from clickify.handler.function import FunctionHandler
 from clickify.types import AnyCallable, Decorator, Inferred
 from clickify.typeutil import unwrap_annotation
@@ -79,7 +79,7 @@ class HandlerRegistry:
 
     def __init__(self) -> None:
         # priority, predicate, handler
-        self.handlers: list[tuple[int, ParamPredicate, ParamHandler]] = []
+        self.handlers: list[tuple[int, ParamPredicate, ParamHandlerFunc]] = []
 
     @typing.overload
     def register(
@@ -87,7 +87,6 @@ class HandlerRegistry:
         *,
         annotation: AnnotationType | Inferred = Inferred.value,
         is_argument: bool | None = None,
-        multi_arg: bool | Inferred = Inferred.value,
         priority: int = DEFAULT_PRIORITY,
     ) -> Decorator: ...
 
@@ -98,7 +97,6 @@ class HandlerRegistry:
         *,
         annotation: AnnotationType | Inferred = Inferred.value,
         is_argument: bool | None = None,
-        multi_arg: bool | Inferred = Inferred.value,
         priority: int = DEFAULT_PRIORITY,
     ) -> None: ...
 
@@ -109,26 +107,17 @@ class HandlerRegistry:
         annotation: AnnotationType | Inferred = Inferred.value,
         is_argument: bool | None = None,
         ignore_alias: bool = False,
-        multi_arg: bool | Inferred = Inferred.value,
         priority: int = DEFAULT_PRIORITY,
         # predicate
     ) -> Decorator | None:
         """Decorator to register a function that will handle a particular annotation.
 
-        The handler function will lookup the type of any parameters, invoke the function,
-        and return the result of its value.  Use this for cases where a parameter can be transformed
-        into one or more other handled parameter types.
-
-        If the function takes only a single parameter, it will use the decls, helptext and name
-        taken from where it is used.
-        Otherwise, the function signature and docstring will be used to add new parameters
-        in any CLI function that uses them.  These parameters may not be renamed / modified by
-        that caller.  Pass multi_arg = True to force this mode to be used even for single
-        parameter functions.
-
+        When this annotation occurs in a command, the parameters of the function will be extended with any
+        additional parameters defined by `func`.  These parameters will then be passed to the function,
+        and the return value used as the value.
 
         Arguments:
-            func: The function to use
+            func: The function to use.
             annotation:
                 The annotation to register.
                 If not provided, will be inferred from the return type of the function.
@@ -136,9 +125,6 @@ class HandlerRegistry:
                 If non-None, only match where the param is an Argument type (when True) or Option type (when False)
             ignore_alias:
                 Treat an aliased type as equivalent to any type matching/aliased to the underlying type
-            multi_arg:
-                Specify whether multiargument mode is used.
-                If not provided, will be inferred based on whether the function takes a single argument.
             priority:
                 Determines whether this will be tried before or after other items.
                 Lower values are tried first, only trying items with higher priority if these do not handle the item.
@@ -146,7 +132,7 @@ class HandlerRegistry:
         """
 
         def decorator[T: Callable[..., typing.Any]](func: T) -> T:
-            handler = FunctionHandler(self, func, multi_arg)
+            handler = FunctionHandler(self, func)
             handled_annotation = handler.funcinfo.return_annotation if isinstance(annotation, Inferred) else annotation
 
             if handled_annotation is inspect._empty:
@@ -167,7 +153,7 @@ class HandlerRegistry:
 
     def register_handler(
         self,
-        handler: ParamHandler,
+        handler: ParamHandlerFunc,
         predicate: ParamPredicate = always_check,
         priority: int = DEFAULT_PRIORITY,
     ) -> None:
@@ -193,7 +179,7 @@ class HandlerRegistry:
         for _pri, pred, handler in self.handlers:
             if pred(info):
                 try:
-                    res = handler.get(info)
+                    res = handler(info)
                     if res is not None:
                         return res
                 except NotHandledException:

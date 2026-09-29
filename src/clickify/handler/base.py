@@ -1,3 +1,14 @@
+"""
+A type handler takes a ParamInfo and returns a HandlerResult object,
+containing the params and a conversion callback, or alternatively
+returns None (or raises NotHandledException) to skip it and try next handler.
+
+If it raises FailedHandlerException or another exception, the handling process
+will fail and an error will be reported instead
+(ie. use when the handler is the correct handler for the object, but something is wrong
+Eg. a function handler where one of the params it uses is not handled.
+"""
+
 import typing
 from abc import abstractmethod
 from collections.abc import Callable
@@ -9,11 +20,17 @@ from clickify.func.paraminfo import ParamInfo
 if typing.TYPE_CHECKING:
     from clickify.handler.registry import HandlerRegistry
 
+type ParamHandlerFunc = Callable[[ParamInfo], HandlerResult | None]
+
 type ParamPredicate = Callable[[ParamInfo], bool]
 
 
 class NotHandledException(Exception):
-    """Raise if handler doesn't handle the given type"""
+    """Raised if handler doesn't handle the given type"""
+
+
+class FailedHandlerException(Exception):
+    """Raised if handler should handle the type, but an error occurs."""
 
 
 class HandlerResult[T]:
@@ -39,17 +56,14 @@ class HandlerResult[T]:
         return opts[self.paraminfo.name]
 
 
-type ParamHandlerFunc = Callable[[ParamInfo], HandlerResult | None]
-
-
 # TODO: Simplify to just a callable?
-class ParamHandler:
+class BaseParamHandler:
     """Handle converting a ParamInfo object into (potentially multiple) click.Parameters,
     and taking the click provided values and producing the final type.
     """
 
     @abstractmethod
-    def get(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult | None:
         """Convert function paramdef to a HandlerResult with parameters and callback.
 
         If param cannot be handled, return None, or raise NotHandled.
@@ -57,13 +71,13 @@ class ParamHandler:
         """
 
 
-class WrappingParamHandler(ParamHandler):
-    """Wrap by modifying ParamInfo and re-looking up the annotation."""
+class WrappingParamHandler(BaseParamHandler):
+    """Wrap by modifying ParamInfo and re-looking up the modified annotation."""
 
     def __init__(self, registry: HandlerRegistry):
         self.registry = registry
 
-    def get(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult | None:
         converted_info = self.convert_param(info)
         if converted_info is None:
             return None

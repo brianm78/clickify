@@ -6,7 +6,7 @@ import click
 import click.types
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import HandlerResult, NotHandledException, ParamHandler
+from clickify.handler.base import BaseParamHandler, HandlerResult, NotHandledException
 from clickify.typeutil import unwrap_annotation
 
 
@@ -14,10 +14,10 @@ class ParamNameMismatch(Exception):
     """Raised where a parameter and the assigned name don't match."""
 
 
-class ClickAnnotatedParameterHandler(ParamHandler):
+class ClickAnnotatedParameterHandler(BaseParamHandler):
     """Allow entirely replacing with a given Parameter."""
 
-    def get(self, info: ParamInfo) -> HandlerResult:
+    def __call__(self, info: ParamInfo) -> HandlerResult:
 
         ann, meta = unwrap_annotation(info.annotation, resolve_alias=False, resolve_generic=False)
         for elem in meta:
