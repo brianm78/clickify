@@ -36,7 +36,7 @@ def app() -> Generator[CLIApplication]:
         param = info.to_click_parameter(type=click.IntRange(0, 10))
         return HandlerResult(info, [param])
 
-    app.registry.register_handler(direct_handler, match_annotation(HandlerType))
+    app.registry.add_handler(direct_handler, match_annotation(HandlerType))
     yield app
 
 

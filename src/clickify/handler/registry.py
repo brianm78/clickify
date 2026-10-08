@@ -138,7 +138,7 @@ class HandlerRegistry:
             if handled_annotation is inspect._empty:
                 raise Exception("No annotation specified, and function does not provide a return annotation")
 
-            self.register_handler(
+            self.add_handler(
                 handler,
                 predicate=match_annotation(handled_annotation, is_argument=is_argument, ignore_alias=ignore_alias),
                 priority=priority,
@@ -151,7 +151,7 @@ class HandlerRegistry:
 
         return decorator
 
-    def register_handler(
+    def add_handler(
         self,
         handler: ParamHandlerFunc,
         predicate: ParamPredicate = always_check,

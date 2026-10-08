@@ -28,6 +28,9 @@ class FuncInfo[T]:
 
         params: list[ParamInfo] = []
         for param in sig.parameters.values():
+            if param.annotation is inspect._empty:
+                raise Exception(f"Unnannotated parameter in function {func}: {param.name}")
+
             arginfo = ParamInfo.from_param(param, docinfo, before_varargs)
 
             if param.kind == inspect.Parameter.VAR_POSITIONAL:

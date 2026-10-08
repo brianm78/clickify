@@ -3,6 +3,7 @@ import typing
 from dataclasses import _MISSING_TYPE, Field, dataclass, field, replace
 
 import click
+from click._utils import UNSET
 
 from clickify import utils
 from clickify.func.docinfo import DocInfo
@@ -21,20 +22,16 @@ class ParamInfo:
     is_positional: bool = False
     is_varargs: bool = False
 
+    default: typing.Any = UNSET
+
     short_decls: list[str] = field(default_factory=list)
     long_decls: list[str] = field(default_factory=list)
 
     # Default options.
     click_defaults: dict[str, typing.Any] = field(default_factory=dict)
 
-    # Always set options - override default type etc.
-    click_overrides: dict[str, typing.Any] = field(default_factory=dict)
-
     def with_click_defaults(self, **opts: typing.Any):
         return replace(self, click_defaults=self.click_defaults | opts)
-
-    def with_click_overrides(self, **opts: typing.Any):
-        return replace(self, click_overrides=self.click_overrides | opts)
 
     @property
     def decls(self):
@@ -59,9 +56,9 @@ class ParamInfo:
             if isinstance(field.default_factory, _MISSING_TYPE):
                 arginfo.click_defaults["required"] = True
             else:
-                arginfo.click_defaults["default"] = field.default_factory()
+                arginfo.default = field.default_factory()
         else:
-            arginfo.click_defaults["default"] = field.default
+            arginfo.default = field.default
 
         param_doc = docinfo.params.get(field.name)
         if param_doc is not None:
@@ -100,7 +97,7 @@ class ParamInfo:
             arginfo.click_defaults["required"] = True
             arginfo.is_argument = False
         else:
-            arginfo.click_defaults["default"] = param.default
+            arginfo.default = param.default
             arginfo.is_argument = True
 
         match param.kind:
@@ -149,7 +146,6 @@ class ParamInfo:
         cls: type[click.Parameter] = click.Argument if self.is_argument else click.Option
 
         cls = click.Argument if self.is_argument else click.Option
-
-        opts = self.click_defaults | kwargs
-        opts.update(self.click_overrides)
+        opts = self.click_defaults | {"default": self.default}
+        opts.update(kwargs)
         return cls(self.decls, **opts)

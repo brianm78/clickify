@@ -4,6 +4,7 @@ from enum import Enum, auto
 
 type AnyCallable = Callable[..., typing.Any]
 type Decorator[T: AnyCallable] = Callable[[T], T]
+type Promot[T] = T
 
 
 class TypeOptions(dict[str, typing.Any]):
@@ -35,6 +36,11 @@ type FileBinaryWrite = typing.BinaryIO
 
 # Note: Must further annotate with TypeOptions(min=??, max=??) to limit range.
 type IntRange = typing.Annotated[int, ClickOptions(type=IntRange)]
+type FloatRange = typing.Annotated[float, ClickOptions(type=FloatRange)]
+
+# Common usecases
+
+type Prompt[T] = T
 
 
 @typing.final

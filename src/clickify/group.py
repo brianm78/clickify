@@ -4,6 +4,7 @@ from collections.abc import Callable
 import click
 
 from clickify.func.paraminfo import ParamInfo
+from clickify.handler.default_registry import get_default_registry
 from clickify.handler.function import FunctionHandler
 from clickify.handler.registry import HandlerRegistry
 from clickify.types import AnyCallable, Decorator
@@ -16,10 +17,14 @@ class ClickifyGroup(click.Group):
 
     def __init__(
         self,
-        registry: HandlerRegistry,
+        *args: typing.Any,
+        registry: HandlerRegistry | None = None,
         **kwargs: typing.Any,
     ) -> None:
         super().__init__(**kwargs)
+        if registry is None:
+            registry = get_default_registry()
+
         self.registry = registry
 
     def _make_command[TCmd: click.Command](

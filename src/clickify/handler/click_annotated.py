@@ -6,11 +6,11 @@ import click
 import click.types
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import BaseParamHandler, HandlerResult, NotHandledException
+from clickify.handler.base import BaseParamHandler, FailedHandlerException, HandlerResult, NotHandledException
 from clickify.typeutil import unwrap_annotation
 
 
-class ParamNameMismatch(Exception):
+class ParamNameMismatch(FailedHandlerException):
     """Raised where a parameter and the assigned name don't match."""
 
 

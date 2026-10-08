@@ -12,10 +12,16 @@ from clickify.typeutil import unwrap_annotation
 
 
 class UnionParamType[Tout, Tin](click.ParamType[Tout, Tin]):
-    def __init__(self, params: Sequence[click.Parameter]):
+    def __init__(self, params: Sequence[click.Parameter], allow_none: bool = False):
         self.params = params
+        self.allow_none = allow_none
 
     def convert(self, value: Tin, param: click.Parameter | None, ctx: click.Context | None) -> Tout:
+
+        # None is special case: Just pass out as-is without trying to convert.
+        if self.allow_none and value is None:
+            return typing.cast(Tout, None)  # Allow None to be passed through.
+
         for param in self.params:
             try:
                 val = param.type.convert(value, param, ctx)
@@ -43,7 +49,9 @@ class UnionParamHandler(BaseParamHandler):
         if typing.get_origin(ann) is not typing.Union:
             return None
 
-        union_types = [t for t in typing.get_args(ann) if t is not types.NoneType]
+        args = typing.get_args(ann)
+        allow_none = types.NoneType in args
+        union_types = [t for t in args if t is not types.NoneType]
 
         # Get handler for each type.
         handlers = [self.registry.handle_param(replace(info, annotation=union_type)) for union_type in union_types]
@@ -55,6 +63,6 @@ class UnionParamHandler(BaseParamHandler):
             return handlers[0]
 
         params = [h.params[0] for h in handlers]
-        uniontype = UnionParamType(params)
+        uniontype = UnionParamType(params, allow_none)
 
         return HandlerResult(info, [info.to_click_parameter(type=uniontype)])
