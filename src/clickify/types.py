@@ -35,8 +35,8 @@ type FileBinaryRead = typing.BinaryIO
 type FileBinaryWrite = typing.BinaryIO
 
 # Note: Must further annotate with TypeOptions(min=??, max=??) to limit range.
-type IntRange = typing.Annotated[int, ClickOptions(type=IntRange)]
-type FloatRange = typing.Annotated[float, ClickOptions(type=FloatRange)]
+type IntRange = int
+type FloatRange = float
 
 # Common usecases
 

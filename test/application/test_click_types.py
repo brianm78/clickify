@@ -3,6 +3,7 @@ Check basic click types work.
 (Choice covered in test_choice)
 """
 
+import typing
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -12,7 +13,19 @@ import pytest
 from click.testing import CliRunner
 
 from clickify import CLIApplication
-from clickify.types import AnyCallable, FileBinaryRead, FileBinaryWrite, FileText, FileTextWrite
+from clickify.types import (
+    AnyCallable,
+    FileBinaryRead,
+    FileBinaryWrite,
+    FileText,
+    FileTextWrite,
+    FloatRange,
+    IntRange,
+    TypeOptions,
+)
+
+type IntRange_0_10 = typing.Annotated[IntRange, TypeOptions(min=0, max=10)]
+type FloatRange_0_10 = typing.Annotated[FloatRange, TypeOptions(min=0.0, max=10.0)]
 
 
 # TODO: Test File
@@ -28,14 +41,19 @@ def int_func(arg: int = 0, /, opt: int = 1):
     click.echo(f"{arg} {opt}")
 
 
-# TODO
-def intrange_func(arg: int = 0, /, opt: int = 1):
+def intrange_func(arg: IntRange_0_10 = 0, /, opt: IntRange_0_10 = 1):
     assert isinstance(arg, int)
     assert isinstance(opt, int)
     click.echo(f"{arg} {opt}")
 
 
 def float_func(arg: float = 0.0, /, opt: float = 1.0):
+    assert isinstance(arg, float)
+    assert isinstance(opt, float)
+    click.echo(f"{arg} {opt}")
+
+
+def floatrange_func(arg: FloatRange_0_10 = 0.0, /, opt: FloatRange_0_10 = 1.0):
     assert isinstance(arg, float)
     assert isinstance(opt, float)
     click.echo(f"{arg} {opt}")
@@ -84,13 +102,21 @@ TESTCASES = [
     (int_func, ["2"], "2 1\n"),
     (int_func, ["--opt", "3"], "0 3\n"),
     (int_func, ["5", "--opt", "6"], "5 6\n"),
-    # Intrange
-    #
+    # # Intrange
+    (intrange_func, [], "0 1\n"),
+    (intrange_func, ["2"], "2 1\n"),
+    (intrange_func, ["--opt", "3"], "0 3\n"),
+    (intrange_func, ["5", "--opt", "6"], "5 6\n"),
     # float
     (float_func, [], "0.0 1.0\n"),
     (float_func, ["2"], "2.0 1.0\n"),
     (float_func, ["--opt", "3.5"], "0.0 3.5\n"),
     (float_func, ["0.5", "--opt", "3"], "0.5 3.0\n"),
+    # floatrange
+    (floatrange_func, [], "0.0 1.0\n"),
+    (floatrange_func, ["2"], "2.0 1.0\n"),
+    (floatrange_func, ["--opt", "3.5"], "0.0 3.5\n"),
+    (floatrange_func, ["0.5", "--opt", "3"], "0.5 3.0\n"),
     # path
     (path_func, [], "a b\n"),
     (path_func, ["/tmp/c"], "c b\n"),
@@ -107,6 +133,24 @@ TESTCASES = [
     (uuid_func, ["--opt", uuid4.hex], f"{default_uuid1.hex} {uuid4.hex}\n"),
     (uuid_func, [uuid3.hex, "--opt", uuid4.hex], f"{uuid3.hex} {uuid4.hex}\n"),
 ]
+
+FAIL_CASES = [
+    # Range values out of bounds
+    (intrange_func, ["20"]),
+    (intrange_func, ["--opt", "-5"]),
+    (floatrange_func, ["20.0"]),
+    (floatrange_func, ["--opt", "-5.0"]),
+]
+
+
+@pytest.mark.parametrize("func, args", FAIL_CASES)
+def test_failcases(func: AnyCallable, args: list[str]):
+    app = CLIApplication()
+
+    cmd = app.command(func)
+    runner = CliRunner()
+    res = runner.invoke(cmd, args)
+    assert res.exit_code != 0
 
 
 @pytest.mark.parametrize("func, args, expected", TESTCASES)

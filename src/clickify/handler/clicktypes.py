@@ -4,7 +4,7 @@ import click
 import click.types
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.base import HandlerResult, BaseParamHandler
+from clickify.handler.base import BaseParamHandler, HandlerResult
 from clickify.types import ClickOptions, TypeOptions
 from clickify.typeutil import unwrap_annotation
 
@@ -46,4 +46,5 @@ class ClickTypeHandler(BaseParamHandler):
         if "type" not in opts:
             opts["type"] = self.clicktype(**type_opts)
 
+        print("Click type for", info.annotation, opts)
         return HandlerResult(info, [info.to_click_parameter(**opts)])

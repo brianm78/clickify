@@ -12,9 +12,9 @@ from clickify.handler.dataclass import DataclassParamHandler
 from clickify.handler.prompt import PromptParamHandler
 from clickify.handler.registry import BUILTIN_PRIORITY, HandlerRegistry, match_annotation
 from clickify.handler.sequence import SequenceParamHandler
-from clickify.handler.typealias import TypeAliasParamHandler
+from clickify.handler.convert_types import TypeAliasParamHandler, UnannotatedHandler
 from clickify.handler.union import UnionParamHandler
-from clickify.types import FileBinaryRead, FileBinaryWrite, FileText, FileTextWrite, IntRange, TypeOptions
+from clickify.types import FileBinaryRead, FileBinaryWrite, FileText, FileTextWrite, FloatRange, IntRange, TypeOptions
 
 
 def get_default_registry() -> HandlerRegistry:
@@ -45,8 +45,8 @@ def get_default_registry() -> HandlerRegistry:
     reg.add_handler(ClickTypeHandler(clicktypes.IntParamType), match_annotation(int), BUILTIN_PRIORITY)
 
     reg.add_handler(ClickTypeHandler(clicktypes.IntRange), match_annotation(IntRange), BUILTIN_PRIORITY)
-    # TODO: FloatRange
     reg.add_handler(ClickTypeHandler(clicktypes.FloatParamType), match_annotation(float), BUILTIN_PRIORITY)
+    reg.add_handler(ClickTypeHandler(clicktypes.FloatRange), match_annotation(FloatRange), BUILTIN_PRIORITY)
     reg.add_handler(ClickTypeHandler(clicktypes.StringParamType), match_annotation(str), priority=BUILTIN_PRIORITY)
     reg.add_handler(ClickTypeHandler(clicktypes.UUIDParameterType), match_annotation(uuid.UUID), BUILTIN_PRIORITY)
     reg.add_handler(
@@ -82,4 +82,7 @@ def get_default_registry() -> HandlerRegistry:
     #
     reg.add_handler(TypeAliasParamHandler(reg), priority=BUILTIN_PRIORITY)
 
+    # By default fail for unannotated types.
+    # To override, add a higher priority handler, like UnannotatedHandler(reg, str)
+    reg.add_handler(UnannotatedHandler(reg, None), priority=BUILTIN_PRIORITY)
     return reg

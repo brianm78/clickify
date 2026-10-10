@@ -1,7 +1,10 @@
 import click
+import pytest
 from click.testing import CliRunner
 
 from clickify.application import CLIApplication
+from clickify.handler.base import FailedHandlerException
+from clickify.handler.convert_types import UnannotatedHandler
 
 
 def basic_func(strval: str, intval: int, flag: bool = False) -> None:
@@ -115,3 +118,30 @@ def test_defaults():
 
     res = runner.invoke(func, ["50"])
     assert res.output == "50 20\n"
+
+
+def test_unannotated():
+    app = CLIApplication()
+
+    with pytest.raises(FailedHandlerException):
+
+        @app.command()
+        def func(unannotated):
+            pass
+
+
+def test_unannotated_add_handler():
+    app = CLIApplication()
+    app.registry.add_handler(UnannotatedHandler(app.registry, int))
+
+    @app.command()
+    def func(unannotated):
+        print(unannotated)
+
+    runner = CliRunner()
+    res = runner.invoke(func, ["10"])
+    assert res.exit_code == 0
+    assert res.output == "10\n"
+
+    res = runner.invoke(func, ["not_a_number"])
+    assert res.exit_code != 0

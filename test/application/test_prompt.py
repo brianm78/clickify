@@ -1,8 +1,3 @@
-import typing
-from enum import Enum, auto
-
-import click
-import pytest
 from click.testing import CliRunner
 
 from clickify.application import CLIApplication
