@@ -20,7 +20,7 @@ class FuncInfo[T]:
     return_annotation: AnnotationType | type[inspect._empty]
 
     @classmethod
-    def from_func(cls, func: typing.Callable[..., T]) -> FuncInfo:
+    def from_func[U](cls, func: typing.Callable[..., U]) -> FuncInfo[U]:
         docinfo = DocInfo.from_obj(func)
 
         sig = inspect.signature(func)
@@ -41,13 +41,16 @@ class FuncInfo[T]:
         to match signature.
 
         Expects all args to be passed by keyword.
+        If not passed in kwargs, will not be provided to function.
         vararge params should be a single key with a sequence value, which will
         be passed as positional args to the function.
         """
         pos_args = []
         keyword_args = {}
         for param in self.params:
-            # TODO: allow missing params?
+            if param.name not in kwargs:
+                continue
+
             val = kwargs[param.name]
 
             if param.is_positional:

@@ -39,7 +39,12 @@ class ChoiceTypeHandler(ClickTypeHandler):
 
             def callback(opts: dict[str, typing.Any]):
                 val = opts[info.name]
-                return annotation[val]
+                # Note: the value may be set to the default by this point, which we
+                # don't want to convert (it'll already be the final value)
+
+                if isinstance(val, str):
+                    return annotation[val]
+                click.Choice
 
         elif typing.get_origin(annotation) is typing.Literal:
             choicetype = click.Choice(typing.get_args(annotation), **type_opts)

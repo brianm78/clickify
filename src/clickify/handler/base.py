@@ -33,6 +33,10 @@ class FailedHandlerException(Exception):
     """Raised if handler should handle the type, but an error occurs."""
 
 
+class IgnoreParameterException(Exception):
+    """Raised if the parameter should be ignored (ie. not provided at all to the callback)"""
+
+
 class HandlerResult[T]:
     """Result of a handler lookup.
 

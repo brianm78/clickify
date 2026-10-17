@@ -1,11 +1,17 @@
 import itertools
 import typing
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
 import click
 
 from clickify.func import FuncInfo, ParamInfo
-from clickify.handler.base import BaseParamHandler, FailedHandlerException, HandlerResult, NotHandledException
+from clickify.handler.base import (
+    BaseParamHandler,
+    FailedHandlerException,
+    HandlerResult,
+    IgnoreParameterException,
+    NotHandledException,
+)
 from clickify.types import Inferred
 
 if typing.TYPE_CHECKING:
@@ -29,6 +35,7 @@ class FunctionHandler[T](BaseParamHandler):
         self.registry = registry
         self.funcinfo = FuncInfo.from_func(func)
 
+        click.pass_context
         # Get click decorator annotations:
         decorator_params = getattr(func, "__click_params__", [])
         if decorator_params:
@@ -40,12 +47,15 @@ class FunctionHandler[T](BaseParamHandler):
             # Passed in parameters take priority over decorator annotation
             self.override_params.update(override_params)
 
-    def _handle_param(self, info: ParamInfo) -> HandlerResult:
-        # Allow arguments / click annotations to override signature.
-        if info.name in self.override_params:
-            return HandlerResult(info, [self.override_params[info.name]])
-
-        return self.registry.handle_param(info)
+    def _get_params(self) -> Iterable[HandlerResult]:
+        for info in self.funcinfo.params:
+            if info.name in self.override_params:
+                yield HandlerResult(info, [self.override_params[info.name]])
+            else:
+                try:
+                    yield self.registry.handle_param(info)
+                except IgnoreParameterException:
+                    pass
 
     def __call__(self, info: ParamInfo) -> HandlerResult | None:
         """We ignore paraminfo, and create a new set of parameters here."""
@@ -55,7 +65,7 @@ class FunctionHandler[T](BaseParamHandler):
 
         try:
             # TODO: allow prefixing opts with paraminfo argname?
-            handler_results = [self._handle_param(paraminfo) for paraminfo in self.funcinfo.params]
+            handler_results = list(self._get_params())
         except NotHandledException as ex:
             # If one of the types we're registered as fails, we want to report the error, rather
             # than just say we don't handle the top-level type.

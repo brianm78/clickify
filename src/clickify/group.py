@@ -52,6 +52,12 @@ class ClickifyGroup(click.Group):
 
         # Dummy toplevel paraminfo (not actually used, except in debug output)
         toplevel_paraminfo = ParamInfo("<toplevel>", object)
+
+        # At toplevel, we just warn if there are unannotated parameters.
+        # In order to allow use as a drop-in replacement for @click.command
+        # (Eg. a click.Context handled via @with_context)
+        # For registered types etc, we require all params to be annotated.
+
         funchandler = FunctionHandler(self.registry, func, multi_arg=True, override_params=param_dict)
 
         handlerresult = funchandler(toplevel_paraminfo)

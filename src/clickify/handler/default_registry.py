@@ -5,6 +5,7 @@ from pathlib import Path
 import click
 from click import types as clicktypes
 
+from clickify.handler.alias import TypeAliasParamHandler
 from clickify.handler.choice import ChoiceTypeHandler
 from clickify.handler.click_annotated import ClickAnnotatedParameterHandler
 from clickify.handler.clicktypes import ClickTypeHandler
@@ -12,12 +13,12 @@ from clickify.handler.dataclass import DataclassParamHandler
 from clickify.handler.prompt import PromptParamHandler
 from clickify.handler.registry import BUILTIN_PRIORITY, HandlerRegistry, match_annotation
 from clickify.handler.sequence import SequenceParamHandler
-from clickify.handler.convert_types import TypeAliasParamHandler, UnannotatedHandler
+from clickify.handler.unannotated import UnannotatedHandler
 from clickify.handler.union import UnionParamHandler
 from clickify.types import FileBinaryRead, FileBinaryWrite, FileText, FileTextWrite, FloatRange, IntRange, TypeOptions
 
 
-def get_default_registry() -> HandlerRegistry:
+def get_default_registry(fail_on_unannotated: bool = True) -> HandlerRegistry:
     reg = HandlerRegistry()
 
     # Note: The below are registered at a higher priority value than user-registered types,
@@ -71,18 +72,17 @@ def get_default_registry() -> HandlerRegistry:
     reg.add_handler(UnionParamHandler(reg), priority=BUILTIN_PRIORITY)
     reg.add_handler(DataclassParamHandler(reg), priority=BUILTIN_PRIORITY)
 
-    # click.Context
+    # TODO: Handle subclasses?
     @reg.register(priority=BUILTIN_PRIORITY)
     def context_handler() -> click.Context:
         return click.get_current_context()
+
+    # If there's no annotation, raise exception (or optionally just warn, and ignore it)
+    reg.add_handler(UnannotatedHandler(fail=fail_on_unannotated), priority=BUILTIN_PRIORITY)
 
     # If there are no matches, resolve any type aliases and try again with unaliased type.
     # Eg. given type InsensitiveString = Annotated[str, ClickOptions(case_sensitive=False)],
     # will reissue search using `str` (but retaining the Annotated[] part)
     #
     reg.add_handler(TypeAliasParamHandler(reg), priority=BUILTIN_PRIORITY)
-
-    # By default fail for unannotated types.
-    # To override, add a higher priority handler, like UnannotatedHandler(reg, str)
-    reg.add_handler(UnannotatedHandler(reg, None), priority=BUILTIN_PRIORITY)
     return reg

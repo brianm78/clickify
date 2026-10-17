@@ -46,5 +46,4 @@ class ClickTypeHandler(BaseParamHandler):
         if "type" not in opts:
             opts["type"] = self.clicktype(**type_opts)
 
-        print("Click type for", info.annotation, opts)
         return HandlerResult(info, [info.to_click_parameter(**opts)])

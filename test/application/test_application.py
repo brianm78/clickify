@@ -1,10 +1,10 @@
 import click
+import click.testing
 import pytest
 from click.testing import CliRunner
 
 from clickify.application import CLIApplication
 from clickify.handler.base import FailedHandlerException
-from clickify.handler.convert_types import UnannotatedHandler
 
 
 def basic_func(strval: str, intval: int, flag: bool = False) -> None:
@@ -39,9 +39,8 @@ def varargs_func(*vals: int, total: bool = False):
         click.echo(sum(vals))
 
 
-def test_help():
+def test_help(runner: CliRunner):
     app = CLIApplication()
-    runner = CliRunner()
     test = app.command(basic_func)
     res = runner.invoke(test, ["--help"])
     assert (
@@ -62,11 +61,10 @@ Options:
     )
 
 
-def test_basic():
+def test_basic(runner: CliRunner):
     app = CLIApplication()
 
     test = app.command(basic_func)
-    runner = CliRunner()
     res = runner.invoke(test, ["foo", "42", "--flag"])
     assert res.output == "foo 42 True\n"
 
@@ -80,20 +78,18 @@ def test_basic():
     assert res.output == "bar 1 False\n"
 
 
-def test_posargs():
+def test_posargs(runner: CliRunner):
     app = CLIApplication()
 
     test = app.command(posargs_func)
-    runner = CliRunner()
     res = runner.invoke(test, ["foo", "--opt", "1"])
     assert res.output == "foo 1\n"
 
 
-def test_varargs():
+def test_varargs(runner: CliRunner):
     app = CLIApplication()
 
     test = app.command(varargs_func)
-    runner = CliRunner()
     res = runner.invoke(test, ["1", "2", "3", "--total"])
     assert res.output == "(1, 2, 3)\n6\n"
 
@@ -101,7 +97,7 @@ def test_varargs():
     assert res.output == "()\n"
 
 
-def test_defaults():
+def test_defaults(runner: CliRunner):
     """Test default value retained for both opts and args, and overridden if value is passed."""
     app = CLIApplication()
 
@@ -109,7 +105,6 @@ def test_defaults():
     def func(arg: int = 10, /, opt: int = 20):
         click.echo(f"{arg} {opt}")
 
-    runner = CliRunner()
     res = runner.invoke(func, [])
     assert res.output == "10 20\n"
 
@@ -120,28 +115,12 @@ def test_defaults():
     assert res.output == "50 20\n"
 
 
-def test_unannotated():
+def test_unannotated(runner: CliRunner):
+
     app = CLIApplication()
 
     with pytest.raises(FailedHandlerException):
 
         @app.command()
-        def func(unannotated):
-            pass
+        def func(unannotated): ...
 
-
-def test_unannotated_add_handler():
-    app = CLIApplication()
-    app.registry.add_handler(UnannotatedHandler(app.registry, int))
-
-    @app.command()
-    def func(unannotated):
-        print(unannotated)
-
-    runner = CliRunner()
-    res = runner.invoke(func, ["10"])
-    assert res.exit_code == 0
-    assert res.output == "10\n"
-
-    res = runner.invoke(func, ["not_a_number"])
-    assert res.exit_code != 0

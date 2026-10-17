@@ -39,14 +39,12 @@ def test_union_reverseorder():
     assert res.output == "1.0 '2'\n"
 
 
-def test_nullable():
+def test_nullable(runner: CliRunner):
     app = CLIApplication()
 
     @app.command()
     def cmd(arg: str | None = None, /, opt: int | None = None):
         click.echo(f"{arg} {opt}")
-
-    runner = CliRunner()
 
     res = runner.invoke(cmd, [])
     assert res.output == "None None\n"

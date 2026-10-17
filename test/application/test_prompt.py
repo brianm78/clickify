@@ -1,3 +1,4 @@
+import click
 from click.testing import CliRunner
 
 from clickify.application import CLIApplication
@@ -9,7 +10,7 @@ def test_prompt():
 
     @app.command()
     def test(val: Prompt[int] = 0):
-        print(f"Got: {val}")
+        click.echo(f"Got: {val}")
 
     runner = CliRunner()
     # Normal arg
