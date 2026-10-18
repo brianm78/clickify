@@ -117,20 +117,18 @@ def test_literal(app: CLIApplication, runner: CliRunner, aliased: bool):
     assert res.exit_code != 0
 
 
-# TODO: Rethink defaults, so cases like below will work:
-# def test_strenum_corner_case(app: CLIApplication, runner: CliRunner):
-#     """Test unlikely corner case where StrEnum used with names corresponding to other values"""
+def test_strenum_mixed_names(app: CLIApplication, runner: CliRunner):
+    """Test unlikely corner case where StrEnum used with names corresponding to other values"""
 
-#     class Test(StrEnum):
-#         foo = "bar"
-#         bar = "foo"
+    class Test(StrEnum):
+        foo = "bar"
+        bar = "foo"
 
-#     @app.command()
-#     def cmd(val: Test = Test.foo, opt: Test = Test.bar):
-#         assert isinstance(val, Test) and isinstance(opt, Test)
-#         click.echo(f"{val} {opt}")
+    @app.command()
+    def cmd(val: Test = Test.foo, opt: Test = Test.bar):
+        assert isinstance(val, Test) and isinstance(opt, Test)
+        click.echo(f"{val.name} {opt.name}")
 
-#     print(repr(cmd.params[1].default))
-#     res = runner.invoke(cmd, [])
-#     assert res.exit_code == 0
-#     assert res.output == "foo bar\n"
+    res = runner.invoke(cmd, [])
+    assert res.exit_code == 0
+    assert res.output == "foo bar\n"

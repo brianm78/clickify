@@ -42,6 +42,10 @@ class HandlerResult[T]:
 
     Defines the click.Parameters, and a function that will retrieve and return the final result.
     Default behavior is to expect a single parameter with the paramname.
+
+    NOTE: If overriding callback, bear in mind that the parameter provided may be the default
+    value rather than a click-entered value.  In such cases, generally the value should not
+    be modified, as it'll already be the final type.
     """
 
     def __init__(

@@ -8,6 +8,7 @@ from clickify.handler.default_registry import get_default_registry
 from clickify.handler.function import FunctionHandler
 from clickify.handler.registry import HandlerRegistry
 from clickify.types import AnyCallable, Decorator
+from clickify.utils import click_command_name
 
 type CommandDecotator[TCmd] = Callable[[AnyCallable], TCmd]
 
@@ -69,9 +70,13 @@ class ClickifyGroup(click.Group):
         if help is None:
             help = funchandler.funcinfo.docinfo.description
 
-        cmdname = getattr(func, "__name__", None) if name is None else name
-        if cmdname is None:
-            raise Exception("No name provided for function")
+        if name is not None:
+            cmdname = name
+        else:
+            cmdname = getattr(func, "__name__", None)
+            if cmdname is None:
+                raise Exception("No name provided for function")
+            cmdname = click_command_name(cmdname)
 
         cmd = cls(
             name=cmdname,
