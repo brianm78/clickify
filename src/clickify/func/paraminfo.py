@@ -9,6 +9,10 @@ from clickify import utils
 from clickify.func.docinfo import DocInfo
 
 
+class UnsupportedParameterType(Exception):
+    pass
+
+
 @dataclass
 class ParamInfo:
     """Argument info obtained from function signature"""
@@ -42,6 +46,26 @@ class ParamInfo:
         decls += self.long_decls
         decls += self.short_decls
         return decls
+
+    @classmethod
+    def from_click_param(cls, param: click.Parameter) -> typing.Self:
+        is_arg = False
+        short_decls, long_decls = [], []
+        if isinstance(param, click.Option):
+            is_arg = True
+            short_decls = param.secondary_opts
+            long_decls = param.opts
+
+        return cls(
+            name=param.name,
+            annotation=object,
+            is_argument=is_arg,
+            is_varargs=False,
+            default=param.default,
+            short_decls=short_decls,
+            long_decls=long_decls,
+            click_defaults={},
+        )
 
     @classmethod
     def from_dataclass_field(cls, field: Field, docinfo: DocInfo) -> typing.Self:
@@ -102,7 +126,7 @@ class ParamInfo:
 
         match param.kind:
             case inspect.Parameter.VAR_KEYWORD:
-                raise Exception("**kwargs not supported")
+                raise UnsupportedParameterType("**kwargs not supported")
 
             case inspect.Parameter.VAR_POSITIONAL:
                 arginfo.is_varargs = True

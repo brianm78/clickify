@@ -23,6 +23,7 @@ class FunctionHandler[T](BaseParamHandler):
 
     Any annotations provided by click (or passed in as override_params) will take precedence over the function
     signature.
+    Note: This may also add parameters not present in the function (Eg. with an exiting callback)
     """
 
     def __init__(
@@ -30,32 +31,38 @@ class FunctionHandler[T](BaseParamHandler):
         registry: HandlerRegistry,
         func: Callable[..., T],
         multi_arg: bool | Inferred = Inferred.value,
-        override_params: dict[str, click.Parameter] | None = None,
+        override_params: list[click.Parameter] | None = None,
     ) -> None:
         self.registry = registry
         self.funcinfo = FuncInfo.from_func(func)
 
-        click.pass_context
         # Get click decorator annotations:
+
+        if override_params is None:
+            override_params = []
+
         decorator_params = getattr(func, "__click_params__", [])
         if decorator_params:
-            self.override_params = {p.name: p for p in decorator_params}
-        else:
-            self.override_params = {}
+            override_params += reversed(decorator_params)
+            del func.__click_params__  # type: ignore
 
-        if override_params:
-            # Passed in parameters take priority over decorator annotation
-            self.override_params.update(override_params)
+        self.override_params = override_params
+        # Store names to ignore in signature to prevent adding twice
+        self.override_param_names = set(p.name for p in self.override_params)
 
     def _get_params(self) -> Iterable[HandlerResult]:
         for info in self.funcinfo.params:
-            if info.name in self.override_params:
-                yield HandlerResult(info, [self.override_params[info.name]])
-            else:
+            if info.name not in self.override_param_names:
                 try:
                     yield self.registry.handle_param(info)
                 except IgnoreParameterException:
                     pass
+
+        # Include click provided params (passed as arg or from @option annotations)
+        for param in self.override_params:
+            # Make param from this.
+            info = ParamInfo.from_click_param(param)
+            yield HandlerResult(info, [param])
 
     def __call__(self, info: ParamInfo) -> HandlerResult | None:
         """We ignore paraminfo, and create a new set of parameters here."""

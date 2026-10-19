@@ -8,7 +8,7 @@ import typing
 from dataclasses import dataclass
 
 from clickify.func.docinfo import DocInfo
-from clickify.func.paraminfo import ParamInfo
+from clickify.func.paraminfo import ParamInfo, UnsupportedParameterType
 from clickify.utils import AnnotationType
 
 
@@ -20,7 +20,7 @@ class FuncInfo[T]:
     return_annotation: AnnotationType | type[inspect._empty]
 
     @classmethod
-    def from_func[U](cls, func: typing.Callable[..., U]) -> FuncInfo[U]:
+    def from_func[U](cls, func: typing.Callable[..., U], ignore_unsupported: bool = True) -> FuncInfo[U]:
         docinfo = DocInfo.from_obj(func)
 
         sig = inspect.signature(func)
@@ -28,7 +28,13 @@ class FuncInfo[T]:
 
         params: list[ParamInfo] = []
         for param in sig.parameters.values():
-            arginfo = ParamInfo.from_param(param, docinfo, before_varargs)
+            try:
+                arginfo = ParamInfo.from_param(param, docinfo, before_varargs)
+            except UnsupportedParameterType:
+                if not ignore_unsupported:
+                    raise
+                # If **kwargs occurs, just ignore it.
+                continue
 
             if param.kind == inspect.Parameter.VAR_POSITIONAL:
                 before_varargs = False

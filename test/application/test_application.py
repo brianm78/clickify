@@ -46,7 +46,7 @@ def test_help(runner: CliRunner):
     assert (
         res.output
         == """\
-Usage: basic_func [OPTIONS] STRVAL INTVAL
+Usage: basic-func [OPTIONS] STRVAL INTVAL
 
   test func
 
@@ -74,7 +74,7 @@ def test_basic(runner: CliRunner):
     res = runner.invoke(test, ["bar", "1"])
     assert res.output == "bar 1 False\n"
 
-    res = runner.invoke(app, ["basic_func", "bar", "1"])
+    res = runner.invoke(app, ["basic-func", "bar", "1"])
     assert res.output == "bar 1 False\n"
 
 
@@ -123,4 +123,3 @@ def test_unannotated(runner: CliRunner):
 
         @app.command()
         def func(unannotated): ...
-

@@ -29,7 +29,12 @@ class ClickifyGroup(click.Group):
         self.registry = registry
 
     def _make_command[TCmd: click.Command](
-        self, func: AnyCallable, cls: type[TCmd], name: str | None = None, **attrs: typing.Any
+        self,
+        func: AnyCallable,
+        cls: type[TCmd],
+        name: str | None = None,
+        params: list[click.Parameter] | None = None,
+        **attrs: typing.Any,
     ) -> TCmd:
         """Construct click.Command type from function.
 
@@ -41,16 +46,6 @@ class ClickifyGroup(click.Group):
         if isinstance(func, click.Command):
             raise TypeError("Attempted to convert a callback into a command twice.")
 
-        # Handle params specified by arg, or by click decorators.
-        # These will override parameters inferred from type annotations.
-        # TODO: Implement
-        attr_params = attrs.pop("params", [])
-        decorator_params = getattr(func, "__click_params__", [])
-        param_dict: dict[str, click.Parameter] = {p.name: p for p in attr_params}
-        param_dict.update({p.name: p for p in decorator_params})
-
-        # TODO: Override if click params specified.
-
         # Dummy toplevel paraminfo (not actually used, except in debug output)
         toplevel_paraminfo = ParamInfo("<toplevel>", object)
 
@@ -59,7 +54,7 @@ class ClickifyGroup(click.Group):
         # (Eg. a click.Context handled via @with_context)
         # For registered types etc, we require all params to be annotated.
 
-        funchandler = FunctionHandler(self.registry, func, multi_arg=True, override_params=param_dict)
+        funchandler = FunctionHandler(self.registry, func, multi_arg=True, override_params=params)
 
         handlerresult = funchandler(toplevel_paraminfo)
         if handlerresult is None:
@@ -207,18 +202,17 @@ class ClickifyGroup(click.Group):
         return decorator
 
     @typing.overload
-    def group(self, __func: Callable[..., typing.Any]) -> ClickifyGroup: ...
+    def group(self, __func: Callable[..., typing.Any]) -> click.Group: ...
 
     @typing.overload
-    def group(
-        self, *args: typing.Any, **kwargs: typing.Any
-    ) -> Callable[[Callable[..., typing.Any]], ClickifyGroup]: ...
+    def group(self, *args: typing.Any, **kwargs: typing.Any) -> Callable[[Callable[..., typing.Any]], click.Group]: ...
 
-    def group(self, *args: typing.Any, **kwargs: typing.Any) -> Callable[[AnyCallable], ClickifyGroup] | ClickifyGroup:
+    def group(self, *args: typing.Any, **kwargs: typing.Any) -> Callable[[AnyCallable], click.Group] | click.Group:
         """Wrap click's group to pass through type registry."""
         # NOTE: duplicating click's logic here, since need to
         # pass through registry and invoke custom .command logic
 
+        super().group
         func: AnyCallable | None = None
 
         if args and callable(args[0]):
@@ -235,15 +229,15 @@ class ClickifyGroup(click.Group):
             else:
                 kwargs["cls"] = ClickifyGroup
 
-        if not issubclass(kwargs["cls"], ClickifyGroup):
-            # TODO: Should we allow this (eg. for attaching regular click groups?)
-            raise TypeError("cls must be an subclass of ClickifyGroup")
+        if issubclass(kwargs["cls"], ClickifyGroup):
+            # Only inherit registry when using a ClickifyGroup subclass.
+            kwargs["registry"] = self.registry
 
-        def decorator(f: AnyCallable) -> ClickifyGroup:
+        def decorator(f: AnyCallable) -> click.Group:
             # click originally calls the click.group decorator here, which just invokes
             # command.  We need to decorate, and pass registry, so just directly calling
             # self.command
-            cmd: ClickifyGroup = self.command(*args, registry=self.registry, **kwargs)(f)
+            cmd: ClickifyGroup = self.command(*args, **kwargs)(f)
             # self.add_command(cmd)
             return cmd
 
