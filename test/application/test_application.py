@@ -39,8 +39,7 @@ def varargs_func(*vals: int, total: bool = False):
         click.echo(sum(vals))
 
 
-def test_help(runner: CliRunner):
-    app = CLIApplication()
+def test_help(runner: CliRunner, app: CLIApplication):
     test = app.command(basic_func)
     res = runner.invoke(test, ["--help"])
     assert (
@@ -61,8 +60,7 @@ Options:
     )
 
 
-def test_basic(runner: CliRunner):
-    app = CLIApplication()
+def test_basic(runner: CliRunner, app: CLIApplication):
 
     test = app.command(basic_func)
     res = runner.invoke(test, ["foo", "42", "--flag"])
@@ -78,16 +76,14 @@ def test_basic(runner: CliRunner):
     assert res.output == "bar 1 False\n"
 
 
-def test_posargs(runner: CliRunner):
-    app = CLIApplication()
+def test_posargs(runner: CliRunner, app: CLIApplication):
 
     test = app.command(posargs_func)
     res = runner.invoke(test, ["foo", "--opt", "1"])
     assert res.output == "foo 1\n"
 
 
-def test_varargs(runner: CliRunner):
-    app = CLIApplication()
+def test_varargs(runner: CliRunner, app: CLIApplication):
 
     test = app.command(varargs_func)
     res = runner.invoke(test, ["1", "2", "3", "--total"])
@@ -97,9 +93,8 @@ def test_varargs(runner: CliRunner):
     assert res.output == "()\n"
 
 
-def test_defaults(runner: CliRunner):
+def test_defaults(runner: CliRunner, app: CLIApplication):
     """Test default value retained for both opts and args, and overridden if value is passed."""
-    app = CLIApplication()
 
     @app.command()
     def func(arg: int = 10, /, opt: int = 20):
@@ -115,9 +110,7 @@ def test_defaults(runner: CliRunner):
     assert res.output == "50 20\n"
 
 
-def test_unannotated(runner: CliRunner):
-
-    app = CLIApplication()
+def test_unannotated(runner: CliRunner, app: CLIApplication):
 
     with pytest.raises(FailedHandlerException):
 

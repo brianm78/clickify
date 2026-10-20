@@ -202,12 +202,15 @@ class ClickifyGroup(click.Group):
         return decorator
 
     @typing.overload
-    def group(self, __func: Callable[..., typing.Any]) -> click.Group: ...
+    def group(self, __func: Callable[..., typing.Any]) -> ClickifyGroup: ...
+
+    @typing.overload
+    def group(self) -> Callable[[Callable[..., typing.Any]], ClickifyGroup]: ...
 
     @typing.overload
     def group(self, *args: typing.Any, **kwargs: typing.Any) -> Callable[[Callable[..., typing.Any]], click.Group]: ...
 
-    def group(self, *args: typing.Any, **kwargs: typing.Any) -> Callable[[AnyCallable], click.Group] | click.Group:
+    def group(self, *args: typing.Any, **kwargs: typing.Any) -> Callable[[AnyCallable], click.Group] | ClickifyGroup:
         """Wrap click's group to pass through type registry."""
         # NOTE: duplicating click's logic here, since need to
         # pass through registry and invoke custom .command logic

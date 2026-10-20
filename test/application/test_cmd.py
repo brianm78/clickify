@@ -8,8 +8,7 @@ from click.testing import CliRunner
 from clickify import CLIApplication
 
 
-def test_cmd():
-    app = CLIApplication()
+def test_cmd(app: CLIApplication, runner: CliRunner):
 
     @app.cmd()
     def foo(arg: str, opt: int = 0) -> tuple[str, int]:
@@ -23,14 +22,12 @@ def test_cmd():
     # Should be callable
     assert foo("foo", 123) == ("foo", 123)
 
-    runner = CliRunner()
     res = runner.invoke(cmd, ["a", "--opt", "1"])
     assert res.exit_code == 0
     assert res.output == "a 1\n"
 
 
-def test_group():
-    app = CLIApplication()
+def test_group(app: CLIApplication, runner: CliRunner):
 
     @app.group()
     def grp():
@@ -47,7 +44,6 @@ def test_group():
     # Should be callable
     assert foo("foo", 123) == ("foo", 123)
 
-    runner = CliRunner()
     res = runner.invoke(cmd, ["a", "--opt", "1"])
     assert res.exit_code == 0
     assert res.output == "a 1\n"

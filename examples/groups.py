@@ -2,18 +2,20 @@ import click
 
 from clickify import CLIApplication
 
-
-@CLIApplication.with_callback()
-def app():
-    click.echo("Toplevel callback")
+app = CLIApplication()
 
 
 @app.group()
+def root():
+    click.echo("Toplevel callback")
+
+
+@root.group()
 def foo(flag: bool = False):
     click.echo(flag)
 
 
-@foo.command()
+@root.command()
 def bar(arg: str):
     click.echo(f"bar {arg}")
 

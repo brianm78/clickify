@@ -19,8 +19,7 @@ type AliasedLiteral = typing.Literal["yes", "no"]
 
 
 @pytest.mark.parametrize("aliased", [True, False])
-def test_enum(aliased: bool):
-    app = CLIApplication()
+def test_enum(app: CLIApplication, runner: CliRunner, aliased: bool):
 
     if aliased:
 
@@ -37,7 +36,6 @@ def test_enum(aliased: bool):
             assert isinstance(opt, Color)
             click.echo(f"{color} {opt}")
 
-    runner = CliRunner()
     res = runner.invoke(test, ["red"])
     assert res.exit_code == 0
     assert res.output == "Color.red Color.red\n"

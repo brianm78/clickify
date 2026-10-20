@@ -4,14 +4,11 @@ from click.testing import CliRunner
 from clickify import CLIApplication
 
 
-def test_union():
-    app = CLIApplication()
+def test_union(app: CLIApplication, runner: CliRunner):
 
     @app.command()
     def cmd(arg: int | float, opt: int | str):
         click.echo(f"{arg!r} {opt!r}")
-
-    runner = CliRunner()
 
     res = runner.invoke(cmd, ["1", "2"])
     assert res.exit_code == 0
@@ -22,8 +19,7 @@ def test_union():
     assert res.output == "1.0 'foo'\n"
 
 
-def test_union_reverseorder():
-    app = CLIApplication()
+def test_union_reverseorder(app: CLIApplication, runner: CliRunner):
 
     # Will use first type that parses,
     # so changing order affects result where inputs
@@ -32,15 +28,12 @@ def test_union_reverseorder():
     def cmd(arg: float | int, opt: str | int):
         click.echo(f"{arg!r} {opt!r}")
 
-    runner = CliRunner()
-
     res = runner.invoke(cmd, ["1", "2"])
     assert res.exit_code == 0
     assert res.output == "1.0 '2'\n"
 
 
-def test_nullable(runner: CliRunner):
-    app = CLIApplication()
+def test_nullable(app: CLIApplication, runner: CliRunner):
 
     @app.command()
     def cmd(arg: str | None = None, /, opt: int | None = None):

@@ -5,14 +5,12 @@ from clickify.application import CLIApplication
 from clickify.types import Prompt
 
 
-def test_prompt():
-    app = CLIApplication()
+def test_prompt(app: CLIApplication, runner: CliRunner):
 
     @app.command()
     def test(val: Prompt[int] = 0):
         click.echo(f"Got: {val}")
 
-    runner = CliRunner()
     # Normal arg
     res = runner.invoke(test, ["--val", "1"])
     assert res.exit_code == 0

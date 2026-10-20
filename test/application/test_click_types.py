@@ -144,29 +144,23 @@ FAIL_CASES = [
 
 
 @pytest.mark.parametrize("func, args", FAIL_CASES)
-def test_failcases(func: AnyCallable, args: list[str]):
-    app = CLIApplication()
-
+def test_failcases(app: CLIApplication, runner: CliRunner, func: AnyCallable, args: list[str]):
     cmd = app.command(func)
-    runner = CliRunner()
     res = runner.invoke(cmd, args)
     assert res.exit_code != 0
 
 
 @pytest.mark.parametrize("func, args, expected", TESTCASES)
-def test_args(func: AnyCallable, args: list[str], expected: str):
-    app = CLIApplication()
+def test_args(app: CLIApplication, runner: CliRunner, func: AnyCallable, args: list[str], expected: str):
 
     cmd = app.command(func)
 
-    runner = CliRunner()
     res = runner.invoke(cmd, args)
     assert res.exit_code == 0
     assert res.output == expected
 
 
-def test_file_read_text(tmp_path: Path):
-    app = CLIApplication()
+def test_file_read_text(app: CLIApplication, runner: CliRunner, tmp_path: Path):
 
     @app.command()
     def file(f: FileText):
@@ -175,14 +169,12 @@ def test_file_read_text(tmp_path: Path):
     path = tmp_path / "file.txt"
     path.write_text("foo")
 
-    runner = CliRunner()
     res = runner.invoke(file, [str(path)])
     assert res.exit_code == 0
     assert res.output == "'foo'\n"
 
 
-def test_file_write_text(tmp_path: Path):
-    app = CLIApplication()
+def test_file_write_text(app: CLIApplication, runner: CliRunner, tmp_path: Path):
 
     @app.command()
     def file(f: FileTextWrite):
@@ -190,15 +182,13 @@ def test_file_write_text(tmp_path: Path):
 
     path = tmp_path / "file.txt"
 
-    runner = CliRunner()
     res = runner.invoke(file, [str(path)])
     assert res.exit_code == 0
     assert path.exists()
     assert path.read_text() == "foo"
 
 
-def test_file_read_binary(tmp_path: Path):
-    app = CLIApplication()
+def test_file_read_binary(app: CLIApplication, runner: CliRunner, tmp_path: Path):
 
     @app.command()
     def file(f: FileBinaryRead):
@@ -207,14 +197,12 @@ def test_file_read_binary(tmp_path: Path):
     path = tmp_path / "file.txt"
     path.write_bytes(b"foo")
 
-    runner = CliRunner()
     res = runner.invoke(file, [str(path)])
     assert res.exit_code == 0
     assert res.output == "b'foo'\n"
 
 
-def test_file_write_binary(tmp_path: Path):
-    app = CLIApplication()
+def test_file_write_binary(app: CLIApplication, runner: CliRunner, tmp_path: Path):
 
     @app.command()
     def file(f: FileBinaryWrite):
@@ -222,7 +210,6 @@ def test_file_write_binary(tmp_path: Path):
 
     path = tmp_path / "file.txt"
 
-    runner = CliRunner()
     res = runner.invoke(file, [str(path)])
     assert res.exit_code == 0
     assert path.exists()

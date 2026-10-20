@@ -22,14 +22,12 @@ class Args:
     default2: Sequence[int] = field(default_factory=tuple)
 
 
-def test_dataclass():
-    app = CLIApplication()
+def test_dataclass(app: CLIApplication, runner: CliRunner):
 
     @app.command()
     def cmd(obj: Args):
         click.echo(obj)
 
-    runner = CliRunner()
     res = runner.invoke(cmd, [])
     assert res.exit_code != 0
 

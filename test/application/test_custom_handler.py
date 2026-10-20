@@ -40,7 +40,7 @@ def app() -> Generator[CLIApplication]:
     yield app
 
 
-def test_extend(app: CLIApplication):
+def test_extend(app: CLIApplication, runner: CliRunner):
     @app.command()
     def func(x: CombineType, extra_option: bool = False):
         """Test func
@@ -52,7 +52,6 @@ def test_extend(app: CLIApplication):
         """
         click.echo(f"{x} : {extra_option}")
 
-    runner = CliRunner()
     res = runner.invoke(func)
     from b.cli.test import runner_show_failures
 
@@ -73,18 +72,17 @@ def test_extend(app: CLIApplication):
     assert res.output == "4 : True\n"
 
 
-def test_no_args(app: CLIApplication):
+def test_no_args(app: CLIApplication, runner: CliRunner):
     @app.command()
     def func(x: ZeroArgsType):
         click.echo(x)
 
-    runner = CliRunner()
     res = runner.invoke(func)
     assert res.exit_code == 0
     assert res.output == "42\n"
 
 
-def test_directhandler(app: CLIApplication):
+def test_directhandler(app: CLIApplication, runner: CliRunner):
 
     @app.command()
     def func(arg: HandlerType):
@@ -94,12 +92,10 @@ def test_directhandler(app: CLIApplication):
         """
         click.echo(arg)
 
-    runner = CliRunner()
     res = runner.invoke(func, ["5"])
     assert res.exit_code == 0
     assert res.output == "5\n"
 
     # Should fail when out of bounds
-    runner = CliRunner()
     res = runner.invoke(func, ["20"])
     assert res.exit_code != 0

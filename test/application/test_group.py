@@ -5,10 +5,8 @@ from clickify.application import CLIApplication
 from clickify.group import ClickifyGroup
 
 
-def test_group():
-    app = CLIApplication()
+def test_group(app: CLIApplication, runner: CliRunner):
 
-    # NOT INVOKING CALLBACK
     @app.group()
     def grp(flag: bool = False):
         click.echo(flag)
@@ -33,7 +31,6 @@ def test_group():
     grp.callback(flag=True)
 
     # TODO: Not invoking group callback.
-    runner = CliRunner()
     res = runner.invoke(app, ["grp", "cmd", "foo"])
     assert res.output == "False\nfoo\n"
 

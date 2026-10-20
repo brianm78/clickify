@@ -1,12 +1,7 @@
 import typing
-from collections.abc import Callable
 
-from clickify.func.paraminfo import ParamInfo
 from clickify.group import ClickifyGroup
-from clickify.handler.default_registry import get_default_registry
-from clickify.handler.function import FunctionHandler
 from clickify.handler.registry import HandlerRegistry
-from clickify.types import AnyCallable
 
 
 class CLIApplication(ClickifyGroup):

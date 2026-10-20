@@ -8,9 +8,8 @@ from click.testing import CliRunner
 from clickify import CLIApplication
 
 
-def test_annotation():
+def test_annotation(app: CLIApplication, runner: CliRunner):
     """Check purely click annotations"""
-    app = CLIApplication()
 
     @app.command()
     @click.argument("arg")
@@ -18,15 +17,13 @@ def test_annotation():
     def cmd(arg: str, flag: bool):
         click.echo(f"{arg} {flag}")
 
-    runner = CliRunner()
     res = runner.invoke(cmd, ["foo"])
     assert res.exit_code == 0
     assert res.output == "foo False\n"
 
 
-def test_mix():
+def test_mix(app: CLIApplication, runner: CliRunner):
     """Check mix of click and signature based annotation"""
-    app = CLIApplication()
 
     @app.command()
     @click.argument("arg", type=click.INT)
@@ -42,7 +39,6 @@ def test_mix():
         assert isinstance(arg, int)
         click.echo(f"{arg} {flag} {nonclick}")
 
-    runner = CliRunner()
     res = runner.invoke(cmd, ["42"])
     assert res.exit_code == 0
     assert res.output == "42 False 12\n"

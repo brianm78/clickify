@@ -8,7 +8,7 @@ import typing
 from dataclasses import dataclass
 
 from clickify.func.docinfo import DocInfo
-from clickify.func.paraminfo import ParamInfo, UnsupportedParameterType
+from clickify.func.paraminfo import ParamInfo
 from clickify.utils import AnnotationType
 
 
