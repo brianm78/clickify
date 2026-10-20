@@ -7,11 +7,11 @@ import pytest
 from clickify import CLIApplication
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def runner() -> Generator[click.testing.CliRunner]:
     yield click.testing.CliRunner()
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def app() -> Generator[CLIApplication]:
     yield CLIApplication()

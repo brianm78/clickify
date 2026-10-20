@@ -18,6 +18,7 @@ class FuncInfo[T]:
     params: list[ParamInfo]
     docinfo: DocInfo
     return_annotation: AnnotationType | type[inspect._empty]
+    allow_unspecified_kwargs: bool = False
 
     @classmethod
     def from_func[U](cls, func: typing.Callable[..., U], ignore_unsupported: bool = True) -> FuncInfo[U]:
@@ -26,21 +27,26 @@ class FuncInfo[T]:
         sig = inspect.signature(func)
         before_varargs = any(param.kind == inspect.Parameter.VAR_POSITIONAL for param in sig.parameters.values())
 
+        allow_unspecified_kwargs = False
         params: list[ParamInfo] = []
         for param in sig.parameters.values():
-            try:
-                arginfo = ParamInfo.from_param(param, docinfo, before_varargs)
-            except UnsupportedParameterType:
-                if not ignore_unsupported:
-                    raise
-                # If **kwargs occurs, just ignore it.
+            # If **kwargs occurs, allow any args to be passed, but don't introspect it
+            if param.kind == inspect.Parameter.VAR_KEYWORD:
+                allow_unspecified_kwargs = True
                 continue
 
+            arginfo = ParamInfo.from_param(param, docinfo, before_varargs)
             if param.kind == inspect.Parameter.VAR_POSITIONAL:
                 before_varargs = False
 
             params.append(arginfo)
-        return cls(func=func, params=params, docinfo=docinfo, return_annotation=sig.return_annotation)
+        return cls(
+            func=func,
+            params=params,
+            docinfo=docinfo,
+            return_annotation=sig.return_annotation,
+            allow_unspecified_kwargs=allow_unspecified_kwargs,
+        )
 
     def invoke(self, **kwargs: typing.Any) -> typing.Any:
         """Wrapper that invokes func with required parameters after adapting
@@ -57,7 +63,7 @@ class FuncInfo[T]:
             if param.name not in kwargs:
                 continue
 
-            val = kwargs[param.name]
+            val = kwargs.pop(param.name)
 
             if param.is_positional:
                 if param.is_varargs:
@@ -67,4 +73,9 @@ class FuncInfo[T]:
             else:
                 keyword_args[param.name] = val
 
-        return self.func(*pos_args, **keyword_args)
+        # If **kwargs present, pass remaining through directly.
+        # Otherwise raise if anything is left
+        if kwargs and not self.allow_unspecified_kwargs:
+            raise Exception(f"Unexpected keyword arguments: {kwargs}")
+
+        return self.func(*pos_args, **keyword_args, **kwargs)

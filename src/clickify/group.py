@@ -54,7 +54,7 @@ class ClickifyGroup(click.Group):
         # (Eg. a click.Context handled via @with_context)
         # For registered types etc, we require all params to be annotated.
 
-        funchandler = FunctionHandler(self.registry, func, multi_arg=True, override_params=params)
+        funchandler = FunctionHandler(self.registry, func, override_params=params, allow_extra_params=True)
 
         handlerresult = funchandler(toplevel_paraminfo)
         if handlerresult is None:

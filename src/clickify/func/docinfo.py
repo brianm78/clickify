@@ -30,9 +30,7 @@ class ParameterDocInfo:
     long_opts: list[str]
 
     @classmethod
-    def from_doc_param(
-        cls, param: docstring_parser.DocstringParam, ignore_errors: bool = False
-    ) -> typing.Self:
+    def from_doc_param(cls, param: docstring_parser.DocstringParam, ignore_errors: bool = False) -> typing.Self:
         """Parse docstring for parameter, seperating out long/short option decls.
 
         Arguments:

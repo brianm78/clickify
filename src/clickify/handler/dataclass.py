@@ -33,7 +33,7 @@ class DataclassParamHandler(BaseParamHandler):
         def callback(opts: dict[str, typing.Any]) -> typing.Any:
             resolved_params: dict[str, typing.Any] = {}
             for h in handler_results:
-                resolved_params[h.paraminfo.name] = h.callback(**opts)
+                resolved_params[h.paraminfo.name] = h.callback_internal(opts)
 
             return dataclass_cls(**resolved_params)  # type: ignore
 

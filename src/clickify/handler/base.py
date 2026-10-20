@@ -59,9 +59,22 @@ class HandlerResult[T]:
         self._callback = callback
 
     def callback(self, **opts: typing.Any) -> T:
+        return self.callback_internal(opts)
+
+    def callback_internal(self, opts: dict[str, typing.Any]) -> T:
+        """Extract and options from the kwargs passed, and return new object created for the parameter.
+
+        NOTE: In the case of a callback being provided, it is responsible for removing handled options.
+        """
         if self._callback is not None:
             return self._callback(opts)
-        return opts[self.paraminfo.name]
+        if self.paraminfo.name not in opts:
+            # There may be cases where a parameter isn't actually passed.
+            # Eg. manually defined click parameters with expose_value=False
+            # TODO: Should we do this selectively?  Ie. *only* for expose_value params,
+            #  - any chance we could cover up bugs just by ignoring?
+            raise IgnoreParameterException(f"Parameter not provided: {self.paraminfo.name}")
+        return opts.pop(self.paraminfo.name)
 
 
 # TODO: Simplify to just a callable?

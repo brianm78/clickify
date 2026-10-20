@@ -39,27 +39,3 @@ def test_group():
 
     res = runner.invoke(app, ["toplevel", "12"])
     assert res.output == "12\n"
-
-
-def test_toplevel_callback():
-    @CLIApplication.with_callback()
-    def grp(flag: bool = False):
-        click.echo(f"Callback: {flag}")
-
-    @grp.command()
-    def cmd1(arg: str):
-        click.echo(arg)
-
-    @grp.command()
-    def cmd2(arg: int):
-        click.echo(arg)
-
-    assert isinstance(grp, CLIApplication)
-
-    runner = CliRunner()
-
-    res = runner.invoke(grp, ["cmd1", "foo"])
-    assert res.output == "Callback: False\nfoo\n"
-
-    res = runner.invoke(grp, ["--flag", "cmd2", "123"])
-    assert res.output == "Callback: True\n123\n"

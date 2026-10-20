@@ -12,7 +12,6 @@ from clickify.handler.base import (
     IgnoreParameterException,
     NotHandledException,
 )
-from clickify.types import Inferred
 
 if typing.TYPE_CHECKING:
     from clickify.handler.registry import HandlerRegistry
@@ -30,11 +29,31 @@ class FunctionHandler[T](BaseParamHandler):
         self,
         registry: HandlerRegistry,
         func: Callable[..., T],
-        multi_arg: bool | Inferred = Inferred.value,
         override_params: list[click.Parameter] | None = None,
+        allow_extra_params: bool = False,
     ) -> None:
+        """Wrap the args of a function as a handler for some returned type.
+
+        Arguments:
+            registry:
+                Used to lookup handlers for the function arg types
+            func:
+                The function to handle.
+                All args will be converted to handlers
+            override_params:
+                Any arguments that should be overridden by click parameters
+                (Used for decotator / directly passed params)
+            allow_extra_params:
+                Allow passing through any extra parameters this handler gets to
+                the function.
+                May be needed for top-level functions where extra parameters may
+                be passed through options added post-creation etc.
+
+
+        """
         self.registry = registry
         self.funcinfo = FuncInfo.from_func(func)
+        self.allow_extra_params = allow_extra_params
 
         # Get click decorator annotations:
 
@@ -81,7 +100,21 @@ class FunctionHandler[T](BaseParamHandler):
         def callback(opts: dict[str, typing.Any]) -> T:
             resolved_params: dict[str, typing.Any] = {}
             for h in handler_results:
-                resolved_params[h.paraminfo.name] = h.callback(**opts)
+                try:
+                    resolved_params[h.paraminfo.name] = h.callback_internal(opts)
+                except IgnoreParameterException:
+                    # Ignore manually added expose_value=False params with no
+                    # corresponding value passed to function.
+                    pass
+
+            if self.allow_extra_params:
+                # Any options not handled by a handler are just passed through unchanged.
+                # This can happen from stuff like a click.option() applied after the
+                # command decorator was applied, or other post-creation modifications.
+                # Should not be used for registered type handlers etc, as could result in
+                # then receiving params intended for other handlers
+                resolved_params = opts | resolved_params
+
             return self.funcinfo.invoke(**resolved_params)
 
         params = list(itertools.chain.from_iterable(h.params for h in handler_results))

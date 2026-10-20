@@ -54,6 +54,9 @@ def test_extend(app: CLIApplication):
 
     runner = CliRunner()
     res = runner.invoke(func)
+    from b.cli.test import runner_show_failures
+
+    runner_show_failures(res)
     assert res.exit_code == 0
     assert res.output == "0 : False\n"
 
