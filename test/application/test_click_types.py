@@ -85,8 +85,8 @@ def uuid_func(arg: uuid.UUID = default_uuid1, /, opt: uuid.UUID = default_uuid2)
 
 
 # Check each type as both arg and option
-# Funcion, args, expected text
-TESTCASES = [
+# Function, args, expected text
+TESTCASES: list[tuple[AnyCallable, list[str], str]] = [
     # str
     (str_func, [], "a b\n"),
     (str_func, ["x"], "x b\n"),

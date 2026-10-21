@@ -50,7 +50,8 @@ class ParamInfo:
     @classmethod
     def from_click_param(cls, param: click.Parameter) -> typing.Self:
         is_arg = False
-        short_decls, long_decls = [], []
+        short_decls: list[str] = []
+        long_decls: list[str] = []
         if isinstance(param, click.Option):
             is_arg = True
             short_decls = param.secondary_opts
@@ -68,7 +69,7 @@ class ParamInfo:
         )
 
     @classmethod
-    def from_dataclass_field(cls, field: Field, docinfo: DocInfo) -> typing.Self:
+    def from_dataclass_field(cls, field: Field[typing.Any], docinfo: DocInfo) -> typing.Self:
         """Construct from dataclass field.
 
         All items treated as Options

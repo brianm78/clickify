@@ -1,4 +1,5 @@
 import inspect
+import typing
 import warnings
 
 from clickify.func.paraminfo import ParamInfo
@@ -34,7 +35,7 @@ class UnannotatedHandler(BaseParamHandler):
         self.warn = warn
         self.fail = fail
 
-    def __call__(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult[typing.Any] | None:
         if info.annotation is inspect._empty:
             if self.fail:
                 raise FailedHandlerException(f"Parameter: {info.name} does not have an annotation")

@@ -2,6 +2,8 @@
 Handle an Annotated[T, click.Argument()] style annotation as using the given parameter directly
 """
 
+import typing
+
 import click
 import click.types
 
@@ -17,7 +19,7 @@ class ParamNameMismatch(FailedHandlerException):
 class ClickAnnotatedParameterHandler(BaseParamHandler):
     """Allow entirely replacing with a given Parameter."""
 
-    def __call__(self, info: ParamInfo) -> HandlerResult:
+    def __call__(self, info: ParamInfo) -> HandlerResult[typing.Any]:
 
         ann, meta = unwrap_annotation(info.annotation, resolve_alias=False, resolve_generic=False)
         for elem in meta:

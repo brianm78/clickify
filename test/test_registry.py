@@ -18,7 +18,9 @@ from clickify.types import ClickOptions
 enumtype = Enum("enumtype", "a b c")
 
 # annotation, expected click type, argument_props, option_props
-TEST_CASES: list[tuple[object, type[click.types.ParamType], dict[str, typing.Any], dict[str, typing.Any]]] = [
+TEST_CASES: list[
+    tuple[object, type[click.types.ParamType[typing.Any]], dict[str, typing.Any], dict[str, typing.Any]]
+] = [
     (str, click.types.StringParamType, {}, {}),
     (int, click.types.IntParamType, {}, {}),
     (float, click.types.FloatParamType, {}, {}),
@@ -58,7 +60,7 @@ def registry() -> Generator[HandlerRegistry]:
 def test_testcases(
     registry: HandlerRegistry,
     annotation: object,
-    expected: type[click.types.ParamType],
+    expected: type[click.types.ParamType[typing.Any]],
     expected_arg_props: dict[str, typing.Any],
     expected_opt_props: dict[str, typing.Any],
     is_arg: bool,

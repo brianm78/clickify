@@ -19,7 +19,7 @@ class ChoiceTypeHandler(ClickTypeHandler):
     def __init__(self, type_options: TypeOptions | None = None, **opts: typing.Any) -> None:
         super().__init__(click.Choice, type_options, **opts)
 
-    def __call__(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult[typing.Any] | None:
         annotation, meta = unwrap_annotation(info.annotation, resolve_generic=False)
 
         # Handle click / type opts.

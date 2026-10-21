@@ -88,7 +88,7 @@ class HandlerRegistry:
         annotation: AnnotationType | Inferred = Inferred.value,
         is_argument: bool | None = None,
         priority: int = DEFAULT_PRIORITY,
-    ) -> Decorator: ...
+    ) -> Decorator[AnyCallable]: ...
 
     @typing.overload
     def register(
@@ -109,7 +109,7 @@ class HandlerRegistry:
         ignore_alias: bool = False,
         priority: int = DEFAULT_PRIORITY,
         # predicate
-    ) -> Decorator | None:
+    ) -> Decorator[AnyCallable] | None:
         """Decorator to register a function that will handle a particular annotation.
 
         When this annotation occurs in a command, the parameters of the function will be extended with any
@@ -171,7 +171,7 @@ class HandlerRegistry:
         """
         bisect.insort_right(self.handlers, (priority, predicate, handler), key=operator.itemgetter(0))
 
-    def handle_param(self, info: ParamInfo) -> HandlerResult:
+    def handle_param(self, info: ParamInfo) -> HandlerResult[typing.Any]:
         """Find handler for parameter, and return result.
 
         If not found, raises NotHandledException

@@ -13,7 +13,7 @@ def test_unannotated_clickarg(runner: CliRunner):
 
     @command()
     @click.argument("arg", type=click.INT)
-    def cmd(arg):
+    def cmd(arg):  # type: ignore
         click.echo(f"Got: {arg}")
 
     # Unannotated should happen AFTER check for click params...
@@ -30,14 +30,14 @@ def test_unannotated_click_ctx(runner: CliRunner):
 
         @command()
         @pass_context
-        def ctx_cmd(ctx):
+        def ctx_cmd(ctx):  # type: ignore
             click.echo("Invoking")
             ctx.invoke(other, arg=42)
 
         # Works if give it a default.
         @command()
         @click.argument("arg")
-        def other(arg):
+        def other(arg):  # type: ignore
             click.echo(f"OTHER: {arg}")
 
     res = runner.invoke(ctx_cmd, [])

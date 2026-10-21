@@ -2,6 +2,7 @@ import types
 import typing
 from collections.abc import Sequence
 from dataclasses import replace
+from typing import override
 
 import click
 
@@ -16,6 +17,7 @@ class UnionParamType[Tout, Tin](click.ParamType[Tout, Tin]):
         self.params = params
         self.allow_none = allow_none
 
+    @override
     def convert(self, value: Tin, param: click.Parameter | None, ctx: click.Context | None) -> Tout:
 
         # None is special case: Just pass out as-is without trying to convert.
@@ -44,7 +46,7 @@ class UnionParamHandler(BaseParamHandler):
     def __init__(self, registry: HandlerRegistry):
         self.registry = registry
 
-    def __call__(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult[typing.Any] | None:
         ann, meta = unwrap_annotation(info.annotation, resolve_generic=False)
         if typing.get_origin(ann) is not typing.Union:
             return None

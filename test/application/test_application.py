@@ -115,4 +115,4 @@ def test_unannotated(runner: CliRunner, app: CLIApplication):
     with pytest.raises(FailedHandlerException):
 
         @app.command()
-        def func(unannotated): ...
+        def func(unannotated): ...  # type:ignore

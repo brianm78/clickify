@@ -69,7 +69,7 @@ class FunctionHandler[T](BaseParamHandler):
         # Store names to ignore in signature to prevent adding twice
         self.override_param_names = set(p.name for p in self.override_params)
 
-    def _get_params(self) -> Iterable[HandlerResult]:
+    def _get_params(self) -> Iterable[HandlerResult[typing.Any]]:
         for info in self.funcinfo.params:
             if info.name not in self.override_param_names:
                 try:
@@ -83,7 +83,7 @@ class FunctionHandler[T](BaseParamHandler):
             info = ParamInfo.from_click_param(param)
             yield HandlerResult(info, [param])
 
-    def __call__(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult[typing.Any] | None:
         """We ignore paraminfo, and create a new set of parameters here."""
 
         # TODO: Maybe prefix param names with a prefix from info.name?

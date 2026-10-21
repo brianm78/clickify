@@ -15,7 +15,7 @@ class DataclassParamHandler(BaseParamHandler):
     def __init__(self, registry: HandlerRegistry):
         self.registry = registry
 
-    def __call__(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult[typing.Any] | None:
         # Note: ignores any assigned default value.
         # Should we do something with this?  Eg. take defaults from it, or call dataclasses.replace() on it?
         # to construct final result?

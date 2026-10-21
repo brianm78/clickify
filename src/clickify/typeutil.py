@@ -34,7 +34,7 @@ def unwrap_annotation(
         The resolved type/annotation, and any metadata found on Annotated[] annotations.
     """
     original = annotation
-    metadata = []
+    metadata: list[object] = []
     for i in range(max_depth):
         if resolve_annotated and typing.get_origin(annotation) is typing.Annotated:
             annotation, *metadata = typing.get_args(annotation)

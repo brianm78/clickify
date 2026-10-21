@@ -57,8 +57,8 @@ class FuncInfo[T]:
         vararge params should be a single key with a sequence value, which will
         be passed as positional args to the function.
         """
-        pos_args = []
-        keyword_args = {}
+        pos_args: list[typing.Any] = []
+        keyword_args: dict[str, typing.Any] = {}
         for param in self.params:
             if param.name not in kwargs:
                 continue

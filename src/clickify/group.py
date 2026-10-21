@@ -1,5 +1,6 @@
 import typing
 from collections.abc import Callable
+from typing import override
 
 import click
 
@@ -87,11 +88,11 @@ class ClickifyGroup(click.Group):
 
     # Overloads for direct use without args vs  create a decorator
     @typing.overload
-    def command(self, name: AnyCallable) -> click.Command: ...
+    def command(self, __func: AnyCallable, /) -> click.Command: ...
 
     @typing.overload
     def command[TCmd: click.Command](
-        self, name: str | None, cls: type[TCmd], **attrs: typing.Any
+        self, name: str | None, cls: type[TCmd], **kwargs: typing.Any
     ) -> Callable[[AnyCallable], TCmd]: ...
 
     @typing.overload
@@ -100,30 +101,30 @@ class ClickifyGroup(click.Group):
         name: None = None,
         *,
         cls: type[TCmd],
-        **attrs: typing.Any,
+        **kwargs: typing.Any,
     ) -> Callable[[AnyCallable], TCmd]: ...
 
     # variant: with optional string name, no cls argument provided.
     @typing.overload
     def command(
-        self, name: str | None = None, cls: None = None, **attrs: typing.Any
+        self, name: str | None = None, cls: None = None, **kwargs: typing.Any
     ) -> Callable[[AnyCallable], click.Command]: ...
 
+    @override
     def command[TCmd: click.Command](
         self,
         name: str | AnyCallable | None = None,
         cls: type[TCmd] | None = None,
-        **attrs: typing.Any,
+        **kwargs: typing.Any,
     ) -> click.Command | Callable[[AnyCallable], click.Command] | Callable[[AnyCallable], TCmd]:
         """Wrap the click.command decorator to also automatically infer types from
         type annotations.
         """
-
+        super().command
         if callable(name):
             # Used as decorator with no args - decorate directly as a Command
 
-            assert cls is None, "Use 'command(cls=cls)(callable)' to specify a class."
-            assert not attrs, "Use 'command(args=..., ...)(callable)' to provide arguments."
+            assert (cls is None) and not kwargs, "Use 'command(**kwargs)(callable)' to specify a class."
             cmd = self._make_command(name, click.Command)
             self.add_command(cmd)
             return cmd
@@ -132,7 +133,7 @@ class ClickifyGroup(click.Group):
             cls = typing.cast(type[TCmd], click.Command)
 
         def decorator(func: AnyCallable) -> TCmd:
-            cmd = self._make_command(func, cls, name, **attrs)
+            cmd = self._make_command(func, cls, name, **kwargs)
             self.add_command(cmd)
             return cmd
 
@@ -143,8 +144,8 @@ class ClickifyGroup(click.Group):
 
     @typing.overload
     def cmd(
-        self, name: str | None, cls: type[click.Command], add_annotation: bool = True, **attrs: typing.Any
-    ) -> Decorator: ...
+        self, name: str | None, cls: type[click.Command], add_annotation: bool = True, **kwargs: typing.Any
+    ) -> Decorator[AnyCallable]: ...
 
     @typing.overload
     def cmd(
@@ -153,38 +154,36 @@ class ClickifyGroup(click.Group):
         *,
         cls: type[click.Command] = click.Command,
         add_annotation: bool = True,
-        **attrs: typing.Any,
-    ) -> Decorator: ...
+        **kwargs: typing.Any,
+    ) -> Decorator[AnyCallable]: ...
 
     @typing.overload
-    def cmd(self, name: str | None = None, cls: None = None, **attrs: typing.Any) -> Decorator: ...
+    def cmd(self, name: str | None = None, cls: None = None, **attrs: typing.Any) -> Decorator[AnyCallable]: ...
 
     def cmd[TFunc: AnyCallable](
         self,
         name: str | TFunc | None = None,
         cls: type[click.Command] | None = None,
         add_annotation: bool = True,
-        **attrs: typing.Any,
-    ) -> TFunc | Decorator:
+        **kwargs: typing.Any,
+    ) -> TFunc | Decorator[AnyCallable]:
         """Equivalent to @command, but with the one difference that the function is not replaced with the Command
         object created.
-        It can be invoked through the group / CLIApplication it is added to, or  add_annotation is True, by calling
+        It can be invoked through the group / CLIApplication it is added to, or if add_annotation is True, by calling
         func.cmd().  Otherwise, the function remaing unchanged and usable as-is.
 
         Arguments:
             cls:
                 The click.Command subclass to use
             add_annotation:
-                Annotate the function with a "cmd" attribute corresponding to the click.Command object created from it.
+                Annotate the function with a ".cmd" attribute corresponding to the click.Command object created from it.
             attrs:
                 Further arguments are passed through to the Command class
         """
 
         if callable(name):
             # Used as decorator with no args - decorate directly as a Command
-
-            assert cls is None, "Use 'command(cls=cls)(callable)' to specify a class."
-            assert not attrs, "Use 'command(args=..., ...)(callable)' to provide arguments."
+            assert (cls is None) and not kwargs, "Use 'command(**kwargs)(callable)' to specify a class."
             cmd = self._make_command(name, click.Command)
             self.add_command(cmd)
             return cmd
@@ -193,7 +192,7 @@ class ClickifyGroup(click.Group):
             cls = click.Command
 
         def decorator[T: AnyCallable](func: T) -> T:
-            cmd = self._make_command(func, cls, name, **attrs)
+            cmd = self._make_command(func, cls, name, **kwargs)
             self.add_command(cmd)
             if add_annotation:
                 setattr(func, "cmd", cmd)
@@ -210,6 +209,7 @@ class ClickifyGroup(click.Group):
     @typing.overload
     def group(self, *args: typing.Any, **kwargs: typing.Any) -> Callable[[Callable[..., typing.Any]], click.Group]: ...
 
+    @override
     def group(self, *args: typing.Any, **kwargs: typing.Any) -> Callable[[AnyCallable], click.Group] | ClickifyGroup:
         """Wrap click's group to pass through type registry."""
         # NOTE: duplicating click's logic here, since need to

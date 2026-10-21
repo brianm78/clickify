@@ -20,7 +20,7 @@ from clickify.func.paraminfo import ParamInfo
 if typing.TYPE_CHECKING:
     from clickify.handler.registry import HandlerRegistry
 
-type ParamHandlerFunc = Callable[[ParamInfo], HandlerResult | None]
+type ParamHandlerFunc = Callable[[ParamInfo], HandlerResult[typing.Any] | None]
 
 type ParamPredicate = Callable[[ParamInfo], bool]
 
@@ -84,7 +84,7 @@ class BaseParamHandler:
     """
 
     @abstractmethod
-    def __call__(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult[typing.Any] | None:
         """Convert function paramdef to a HandlerResult with parameters and callback.
 
         If param cannot be handled, return None, or raise NotHandled.
@@ -98,7 +98,7 @@ class WrappingParamHandler(BaseParamHandler):
     def __init__(self, registry: HandlerRegistry):
         self.registry = registry
 
-    def __call__(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult[typing.Any] | None:
         converted_info = self.convert_param(info)
         if converted_info is None:
             return None

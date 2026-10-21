@@ -26,13 +26,13 @@ class ClickTypeHandler(BaseParamHandler):
     """
 
     def __init__(
-        self, click_type: type[click.ParamType], type_options: TypeOptions | None = None, **opts: typing.Any
+        self, click_type: type[click.ParamType[typing.Any]], type_options: TypeOptions | None = None, **opts: typing.Any
     ) -> None:
         self.clicktype = click_type
         self.type_options: dict[str, typing.Any] = type_options if type_options is not None else {}
         self.opts = opts
 
-    def __call__(self, info: ParamInfo) -> HandlerResult | None:
+    def __call__(self, info: ParamInfo) -> HandlerResult[typing.Any] | None:
         ann, meta = unwrap_annotation(info.annotation)
         type_opts = dict(self.type_options)
         opts = dict(self.opts)

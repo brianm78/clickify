@@ -1,3 +1,4 @@
+import typing
 from collections.abc import Generator
 
 import click
@@ -32,7 +33,7 @@ def app() -> Generator[CLIApplication]:
     def ZeroArgHandler() -> ZeroArgsType:
         return 42
 
-    def direct_handler(info: ParamInfo) -> HandlerResult | None:
+    def direct_handler(info: ParamInfo) -> HandlerResult[typing.Any] | None:
         param = info.to_click_parameter(type=click.IntRange(0, 10))
         return HandlerResult(info, [param])
 
