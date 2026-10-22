@@ -24,7 +24,7 @@ from functools import update_wrapper
 import click
 
 from clickify.application import CLIApplication
-from clickify.handler.default_registry import get_default_registry
+from clickify.default_registry import get_default_registry
 
 if typing.TYPE_CHECKING:
     import typing_extensions

@@ -14,7 +14,7 @@ from clickify.handler.base import (
 )
 
 if typing.TYPE_CHECKING:
-    from clickify.handler.registry import HandlerRegistry
+    from clickify.registry import HandlerRegistry
 
 
 class FunctionHandler[T](BaseParamHandler):

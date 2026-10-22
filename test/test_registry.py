@@ -11,8 +11,8 @@ import pytest
 from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import NotHandledException
 from clickify.handler.click_annotated import ParamNameMismatch
-from clickify.handler.default_registry import get_default_registry
-from clickify.handler.registry import HandlerRegistry
+from clickify.default_registry import get_default_registry
+from clickify.registry import HandlerRegistry
 from clickify.types import ClickOptions
 
 enumtype = Enum("enumtype", "a b c")

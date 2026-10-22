@@ -13,6 +13,10 @@ def test_group(app: CLIApplication, runner: CliRunner):
 
     assert isinstance(grp, ClickifyGroup)
 
+    @grp.group()
+    def nested():
+        print("Nested")
+
     @app.command()
     def toplevel(val: int):
         click.echo(val)
@@ -23,7 +27,7 @@ def test_group(app: CLIApplication, runner: CliRunner):
 
     assert isinstance(cmd, click.Command)
 
-    @grp.command()
+    @nested.command()
     def cmd2(arg: str, flag2: bool = False):
         click.echo(f"{arg} {flag2}")
 
@@ -36,3 +40,6 @@ def test_group(app: CLIApplication, runner: CliRunner):
 
     res = runner.invoke(app, ["toplevel", "12"])
     assert res.output == "12\n"
+
+    res = runner.invoke(app, ["grp", "nested", "cmd2", "arg", "--flag2"])
+    assert res.output == "False\nNested\narg True\n"

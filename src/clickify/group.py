@@ -5,9 +5,9 @@ from typing import override
 import click
 
 from clickify.func.paraminfo import ParamInfo
-from clickify.handler.default_registry import get_default_registry
+from clickify.default_registry import get_default_registry
 from clickify.handler.function import FunctionHandler
-from clickify.handler.registry import HandlerRegistry
+from clickify.registry import HandlerRegistry
 from clickify.types import AnyCallable, Decorator
 from clickify.utils import click_command_name
 

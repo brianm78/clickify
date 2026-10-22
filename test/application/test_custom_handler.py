@@ -7,7 +7,7 @@ from click.testing import CliRunner
 
 from clickify import CLIApplication, ParamInfo
 from clickify.handler.base import HandlerResult
-from clickify.handler.registry import match_annotation
+from clickify.registry import match_annotation
 
 type CombineType = int
 type HandlerType = int

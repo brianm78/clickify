@@ -1,7 +1,7 @@
 import typing
 
 from clickify.group import ClickifyGroup
-from clickify.handler.registry import HandlerRegistry
+from clickify.registry import HandlerRegistry
 
 
 class CLIApplication(ClickifyGroup):

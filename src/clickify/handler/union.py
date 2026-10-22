@@ -15,7 +15,7 @@ from clickify.handler.base import (
     IgnoreParameterException,
     NotHandledException,
 )
-from clickify.handler.registry import HandlerRegistry
+from clickify.registry import HandlerRegistry
 from clickify.typeutil import unwrap_annotation
 
 
@@ -63,7 +63,7 @@ class UnionParamHandler(BaseParamHandler):
         # Note: If no handler exists for one of the types, we still allow it
         # (Eg. for cases where it's used as the default).  It just won't be settable from a commandline
         # option.  However, we require at least one to have a valid handler.
-        handlers: list[HandlerResult] = []
+        handlers: list[HandlerResult[typing.Any]] = []
         for union_type in union_types:
             try:
                 result = self.registry.handle_param(replace(info, default=UNSET, annotation=union_type))
@@ -97,7 +97,7 @@ class UnionParamHandler(BaseParamHandler):
 
             return opts.pop(info.name)
 
-        kwargs = {}
+        kwargs: dict[str, typing.Any] = {}
         if info.default is not UNSET:
             # Override required to be false, handle default in callback.
             kwargs = {"required": False}

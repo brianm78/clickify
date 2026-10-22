@@ -5,7 +5,7 @@ import typing
 from clickify.func.docinfo import DocInfo
 from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import BaseParamHandler, HandlerResult
-from clickify.handler.registry import HandlerRegistry
+from clickify.registry import HandlerRegistry
 from clickify.typeutil import unwrap_annotation
 
 

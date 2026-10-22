@@ -1,7 +1,7 @@
 from clickify.application import CLIApplication
 from clickify.func.paraminfo import ParamInfo
 from clickify.handler.base import NotHandledException
-from clickify.handler.registry import HandlerRegistry
+from clickify.registry import HandlerRegistry
 from clickify.types import ClickOptions, TypeOptions
 
 app = CLIApplication()

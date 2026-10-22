@@ -18,7 +18,7 @@ import click
 from clickify.func.paraminfo import ParamInfo
 
 if typing.TYPE_CHECKING:
-    from clickify.handler.registry import HandlerRegistry
+    from clickify.registry import HandlerRegistry
 
 type ParamHandlerFunc = Callable[[ParamInfo], HandlerResult[typing.Any] | None]
 
