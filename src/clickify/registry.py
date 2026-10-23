@@ -19,39 +19,62 @@ DEFAULT_PRIORITY = 0
 
 def match_annotation(
     annotation: AnnotationType,
-    ignore_alias: bool = False,
+    resolve_alias: bool = False,
+    resolve_generic: bool = False,
     is_argument: bool | None = None,
     extra_predicate: ParamPredicate | None = None,
+    allow_subclass: bool = False,
 ) -> ParamPredicate:
     """Construct a match predicate for an annotation.
 
     Will match if the annotation is equal (according to equality) with the registered annotation
     (ie. not a subclass check etc), but will not include Annotated[...] and optionally
     may ignore type aliasing.
+    If allow_subclass is set, will instead check issubclass (requires that the type is a class, rather
+    than other typeform, after resolving alias etc.)
 
     Arguments:
         annotation: Annotation to match
-        ignore_alias:
+        resolve_alias:
             Don't treat a type alias as a different type from the aliased type.
             Ie. `type Foo = str` will match a `str` annotation.
+        resolve_generic:
+            Resolve any generics to their base type before comparison.
+            Ie. list[str] would match list[int] or list
         is_argument:
             If True/False, only match if the parameter is an argument.
             If None, matches either way.
+        allow_subclass:
+            Compare with issubclass(registered_type, func_type) rather than equality.
+            (Ie. registering SubClass will match a function requesting BaseClass)
+            Note: resolve_alias and resolve_generic should probably be True for this case,
+            as typeform must be a type, rather than alias/other typeform to compare.
         extra_predicate:
             Any extra predicate function taking the paraminfo object.
 
     """
     _orig = annotation
-    annotation, _meta = unwrap_annotation(annotation, resolve_alias=ignore_alias, resolve_generic=False)
+    annotation, _meta = unwrap_annotation(annotation, resolve_alias=resolve_alias, resolve_generic=resolve_generic)
 
     def match(info: ParamInfo) -> bool:
         # Require exact match.
         if is_argument is not None and info.is_argument != is_argument:
             return False
 
-        param_annotation, _meta = unwrap_annotation(info.annotation, resolve_alias=ignore_alias, resolve_generic=False)
+        param_annotation, _meta = unwrap_annotation(
+            info.annotation, resolve_alias=resolve_alias, resolve_generic=resolve_generic
+        )
 
-        return (param_annotation == annotation) and ((extra_predicate is None) or extra_predicate(info))
+        if allow_subclass:
+            match = (
+                isinstance(param_annotation, type)
+                and isinstance(annotation, type)
+                and issubclass(annotation, param_annotation)
+            )
+        else:
+            match = param_annotation == annotation
+
+        return match and ((extra_predicate is None) or extra_predicate(info))
 
     return match
 
@@ -67,14 +90,12 @@ def always_check(info: ParamInfo) -> bool:
 class HandlerRegistry:
     """Allow registering handlers for converting argument definition into click.Parameter(s).
 
-    Handlers are checked in sequence in order of registration.
-    They may be registered with either:
-        register_annotation:
-            Associates an exact annotation
-
-    Handlers may be looked up as:
-        - exact match of annotation (highest priority)
-        - a predicate that determines
+    Handlers are checked in sequence in order of priority, then registration.
+    A predicate may be associated with each that determines whether to attempt it,
+    otherwise the handler is called and if it returns a HandlerResult, used.
+    If it returns None or raises NotHandledException, the next handler in the list is tried
+    until one is successful, or raises FailedHandlerException (raised for a type it *should* handle,
+    but has an error that prevents it)
     """
 
     def __init__(self) -> None:
@@ -87,6 +108,9 @@ class HandlerRegistry:
         *,
         annotation: AnnotationType | Inferred = Inferred.value,
         is_argument: bool | None = None,
+        resolve_alias: bool = False,
+        resolve_generic: bool = False,
+        allow_subclass: bool = False,
         priority: int = DEFAULT_PRIORITY,
     ) -> Decorator[AnyCallable]: ...
 
@@ -97,6 +121,9 @@ class HandlerRegistry:
         *,
         annotation: AnnotationType | Inferred = Inferred.value,
         is_argument: bool | None = None,
+        resolve_alias: bool = False,
+        resolve_generic: bool = False,
+        allow_subclass: bool = False,
         priority: int = DEFAULT_PRIORITY,
     ) -> None: ...
 
@@ -106,7 +133,9 @@ class HandlerRegistry:
         *,
         annotation: AnnotationType | Inferred = Inferred.value,
         is_argument: bool | None = None,
-        ignore_alias: bool = False,
+        resolve_alias: bool = False,
+        resolve_generic: bool = False,
+        allow_subclass: bool = False,
         priority: int = DEFAULT_PRIORITY,
         # predicate
     ) -> Decorator[AnyCallable] | None:
@@ -123,8 +152,12 @@ class HandlerRegistry:
                 If not provided, will be inferred from the return type of the function.
             is_argument:
                 If non-None, only match where the param is an Argument type (when True) or Option type (when False)
-            ignore_alias:
+            resolve_alias:
                 Treat an aliased type as equivalent to any type matching/aliased to the underlying type
+            resolve_generic:
+                Treat a generic type as equivalent to the origin type (ie. list[str] treated as list)
+            allow_subclass:
+                Match subclasses of the type (after resolve_alias/resolve_generic applied), rather than just equality.
             priority:
                 Determines whether this will be tried before or after other items.
                 Lower values are tried first, only trying items with higher priority if these do not handle the item.
@@ -140,7 +173,13 @@ class HandlerRegistry:
 
             self.add_handler(
                 handler,
-                predicate=match_annotation(handled_annotation, is_argument=is_argument, ignore_alias=ignore_alias),
+                predicate=match_annotation(
+                    handled_annotation,
+                    is_argument=is_argument,
+                    resolve_alias=resolve_alias,
+                    resolve_generic=resolve_generic,
+                    allow_subclass=allow_subclass,
+                ),
                 priority=priority,
             )
             return func

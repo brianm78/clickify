@@ -100,3 +100,25 @@ def test_directhandler(app: CLIApplication, runner: CliRunner):
     # Should fail when out of bounds
     res = runner.invoke(func, ["20"])
     assert res.exit_code != 0
+
+
+def test_subclass(app: CLIApplication, runner: CliRunner):
+
+    class Base:
+        pass
+
+    class Sub(Base):
+        pass
+
+    @app.register(resolve_generic=False, resolve_alias=False, allow_subclass=True)
+    def accept_sub(val: int = 0) -> Sub:
+        print(val)
+        return Sub()
+
+    @app.command()
+    def cmd(obj: Base) -> None:
+        print(type(obj).__name__)
+
+    res = runner.invoke(cmd, ["--val", "1"])
+    assert res.exit_code == 0
+    assert res.output == "1\nSub\n"

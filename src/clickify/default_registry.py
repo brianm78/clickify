@@ -11,10 +11,10 @@ from clickify.handler.click_annotated import ClickAnnotatedParameterHandler
 from clickify.handler.clicktypes import ClickTypeHandler
 from clickify.handler.dataclass import DataclassParamHandler
 from clickify.handler.prompt import PromptParamHandler
-from clickify.registry import BUILTIN_PRIORITY, HandlerRegistry, match_annotation
 from clickify.handler.sequence import SequenceParamHandler
 from clickify.handler.unannotated import UnannotatedHandler
 from clickify.handler.union import UnionParamHandler
+from clickify.registry import BUILTIN_PRIORITY, HandlerRegistry, match_annotation
 from clickify.types import FileBinaryRead, FileBinaryWrite, FileText, FileTextWrite, FloatRange, IntRange, TypeOptions
 
 

@@ -4,7 +4,6 @@ from enum import Enum, auto
 
 type AnyCallable = Callable[..., typing.Any]
 type Decorator[T: AnyCallable] = Callable[[T], T]
-type Promot[T] = T
 
 
 class TypeOptions(dict[str, typing.Any]):

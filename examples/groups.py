@@ -20,4 +20,5 @@ def bar(arg: str):
     click.echo(f"bar {arg}")
 
 
-app()
+if __name__ == "__main__":
+    app()

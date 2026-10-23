@@ -151,13 +151,23 @@ def test_failcases(app: CLIApplication, runner: CliRunner, func: AnyCallable, ar
 
 
 @pytest.mark.parametrize("func, args, expected", TESTCASES)
-def test_args(app: CLIApplication, runner: CliRunner, func: AnyCallable, args: list[str], expected: str):
+def test_testcases(app: CLIApplication, runner: CliRunner, func: AnyCallable, args: list[str], expected: str):
 
     cmd = app.command(func)
 
     res = runner.invoke(cmd, args)
     assert res.exit_code == 0
     assert res.output == expected
+
+
+def test_context(app: CLIApplication, runner: CliRunner):
+    @app.command()
+    def with_context(ctx: click.Context):
+        print(isinstance(ctx, click.Context))
+
+    res = runner.invoke(with_context, [])
+    assert res.exit_code == 0
+    assert res.output == "True\n"
 
 
 def test_file_read_text(app: CLIApplication, runner: CliRunner, tmp_path: Path):
