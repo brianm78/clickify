@@ -28,7 +28,6 @@ type IntRange_0_10 = typing.Annotated[IntRange, TypeOptions(min=0, max=10)]
 type FloatRange_0_10 = typing.Annotated[FloatRange, TypeOptions(min=0.0, max=10.0)]
 
 
-# TODO: Test File
 def bool_func(arg: bool = False, /, opt: bool = False):
     assert isinstance(arg, bool)
     assert isinstance(opt, bool)

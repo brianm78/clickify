@@ -62,22 +62,20 @@ class HandlerResult[T]:
         return self.callback_internal(opts)
 
     def callback_internal(self, opts: dict[str, typing.Any]) -> T:
-        """Extract and options from the kwargs passed, and return new object created for the parameter.
+        """Extract and remove options from the kwargs passed, and return new object created for the parameter.
 
         NOTE: In the case of a callback being provided, it is responsible for removing handled options.
         """
         if self._callback is not None:
             return self._callback(opts)
         if self.paraminfo.name not in opts:
-            # There may be cases where a parameter isn't actually passed.
-            # Eg. manually defined click parameters with expose_value=False
-            # TODO: Should we do this selectively?  Ie. *only* for expose_value params,
-            #  - any chance we could cover up bugs just by ignoring?
+            # Params might receive values in other ways.
+            # Eg. by something like click.pass_context
+            # Raise IgnoreParameter for these cases, which will just omit it from the passed values.
             raise IgnoreParameterException(f"Parameter not provided: {self.paraminfo.name}")
         return opts.pop(self.paraminfo.name)
 
 
-# TODO: Simplify to just a callable?
 class BaseParamHandler:
     """Handle converting a ParamInfo object into (potentially multiple) click.Parameters,
     and taking the click provided values and producing the final type.

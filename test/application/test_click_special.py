@@ -1,8 +1,31 @@
+"""
+Test types with special click arg handling (eg. count, Prompt)
+"""
+
 import click
 from click.testing import CliRunner
 
 from clickify.application import CLIApplication
-from clickify.types import Prompt
+from clickify.types import Count, Prompt
+
+
+def test_count(app: CLIApplication, runner: CliRunner):
+
+    @app.command()
+    def test(count: Count = 0):
+        click.echo(count)
+
+    res = runner.invoke(test, [])
+    assert res.exit_code == 0
+    assert res.output == "0\n"
+
+    res = runner.invoke(test, ["--count"])
+    assert res.exit_code == 0
+    assert res.output == "1\n"
+
+    res = runner.invoke(test, ["--count", "--count", "--count"])
+    assert res.exit_code == 0
+    assert res.output == "3\n"
 
 
 def test_prompt(app: CLIApplication, runner: CliRunner):

@@ -8,14 +8,6 @@ from clickify.handler.base import BaseParamHandler, HandlerResult
 from clickify.types import ClickOptions, TypeOptions
 from clickify.typeutil import unwrap_annotation
 
-# TODO: Allow TypeOptions annotation.  Eg. for Path(readable=False) etc.
-# Eg. x : Annotated[Path, ClickOptions(redable=True, exists=True)] etc]
-
-
-# TODO: Allow setting decls, is_argument etc, click class (eg. subclass of Argument/Option)
-# Maybe also have add_decls=[] vs replace_decls=[]
-# (Or short_decls / long_decls)
-
 
 class ClickTypeHandler(BaseParamHandler):
     """Invoke a click.ParamType to handle the parameter.

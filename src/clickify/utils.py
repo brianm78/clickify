@@ -18,5 +18,4 @@ def click_option_name(paramname: str) -> str:
     """Normalise parameter to the expected click option name.
     Eg. foo_bar -> --foo-bar
     """
-    # TODO: Check this.  (eliminate leading "_"?)
     return "--" + paramname.replace("_", "-")

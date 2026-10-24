@@ -34,7 +34,6 @@ def test_group(app: CLIApplication, runner: CliRunner):
     assert grp.callback is not None
     grp.callback(flag=True)
 
-    # TODO: Not invoking group callback.
     res = runner.invoke(app, ["grp", "cmd", "foo"])
     assert res.output == "False\nfoo\n"
 
