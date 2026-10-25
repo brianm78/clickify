@@ -29,8 +29,8 @@ from clickify.default_registry import get_default_registry
 if typing.TYPE_CHECKING:
     import typing_extensions
 
-reg = get_default_registry(fail_on_unannotated=False)
-app = CLIApplication(registry=reg)
+reg = get_default_registry(fail_on_unannotated=False, warn_on_unannotated=False)
+app = CLIApplication(registry=reg, use_full_doc_description=True)
 
 command = app.command
 group = app.group

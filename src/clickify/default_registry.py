@@ -18,7 +18,7 @@ from clickify.registry import BUILTIN_PRIORITY, HandlerRegistry, match_annotatio
 from clickify.types import FileBinaryRead, FileBinaryWrite, FileText, FileTextWrite, FloatRange, IntRange, TypeOptions
 
 
-def get_default_registry(fail_on_unannotated: bool = True) -> HandlerRegistry:
+def get_default_registry(fail_on_unannotated: bool = True, warn_on_unannotated: bool = True) -> HandlerRegistry:
     reg = HandlerRegistry()
 
     # Note: The below are registered at a higher priority value than user-registered types,
@@ -78,7 +78,7 @@ def get_default_registry(fail_on_unannotated: bool = True) -> HandlerRegistry:
         return click.get_current_context()
 
     # If there's no annotation, raise exception (or optionally just warn, and ignore it)
-    reg.add_handler(UnannotatedHandler(fail=fail_on_unannotated), priority=BUILTIN_PRIORITY)
+    reg.add_handler(UnannotatedHandler(fail=fail_on_unannotated, warn=warn_on_unannotated), priority=BUILTIN_PRIORITY)
 
     # If there are no matches, resolve any type aliases and try again with unaliased type.
     # Eg. given type InsensitiveString = Annotated[str, ClickOptions(case_sensitive=False)],

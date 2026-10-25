@@ -11,6 +11,7 @@ class CLIApplication(ClickifyGroup):
         self,
         *args: typing.Any,
         registry: HandlerRegistry | None = None,
+        use_full_doc_description: bool = False,
         invoke_direct: bool = True,
         **kwargs: typing.Any,
     ):
@@ -18,16 +19,20 @@ class CLIApplication(ClickifyGroup):
         Additional keyword arguments will be passed through to the click.Group constructor.
 
         Arguments:
-            registry:  Handler registry to use.  If omitted, a default registry is created.
+            registry:
+                Handler registry to use.  If omitted, a default registry is created.
+            use_full_doc_description:
+                If True, use full func.__doc__ as the help (if not provided)
+                Otherwise, strips out the Arguments section (used to for the parameter help)
             invoke_direct:
-                Mirror Typer behaviour where directly invoking the root application when only
-                a single command is registered will invoke that command directly.
+                If only one command/group is defined, calling app() will invoke that command
+                directly, rather than acting as a further group.
         """
-        super().__init__(*args, registry=registry, **kwargs)
+        super().__init__(*args, registry=registry, use_full_doc_description=use_full_doc_description, **kwargs)
         self.group_class = ClickifyGroup
-        self.invoke_direct = invoke_direct
 
         self.register = self.registry.register
+        self.invoke_direct = invoke_direct
 
     def __call__(self, *args: typing.Any, **kwargs: typing.Any):
         if self.invoke_direct and len(self.commands) == 1:

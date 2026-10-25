@@ -4,8 +4,8 @@ from typing import override
 
 import click
 
-from clickify.func.paraminfo import ParamInfo
 from clickify.default_registry import get_default_registry
+from clickify.func.paraminfo import ParamInfo
 from clickify.handler.function import FunctionHandler
 from clickify.registry import HandlerRegistry
 from clickify.types import AnyCallable, Decorator
@@ -21,13 +21,24 @@ class ClickifyGroup(click.Group):
         self,
         *args: typing.Any,
         registry: HandlerRegistry | None = None,
+        use_full_doc_description: bool = False,
         **kwargs: typing.Any,
     ) -> None:
+        """Group subclass that automatically constructs wrapper for annotated parameters.
+
+        Arguments:
+            registry :
+                Registry to use to lookup type annotation handlers
+            use_full_doc_description:
+                If True, will use full function __doc__ as the helptext, rather than stripping the
+                arguments section.
+        """
         super().__init__(**kwargs)
         if registry is None:
             registry = get_default_registry()
 
         self.registry = registry
+        self.use_full_doc = use_full_doc_description
 
     def _make_command[TCmd: click.Command](
         self,
@@ -64,7 +75,10 @@ class ClickifyGroup(click.Group):
         # If help specified, override docstring description
         help = attrs.pop("help", None)
         if help is None:
-            help = funchandler.funcinfo.docinfo.description
+            if self.use_full_doc:
+                help = getattr(func, "__doc__", None)
+            else:
+                help = funchandler.funcinfo.docinfo.description
 
         if name is not None:
             cmdname = name
