@@ -221,10 +221,12 @@ class ClickifyGroup(click.Group):
     def group(self) -> Callable[[Callable[..., typing.Any]], ClickifyGroup]: ...
 
     @typing.overload
-    def group(self, *args: typing.Any, **kwargs: typing.Any) -> Callable[[Callable[..., typing.Any]], click.Group]: ...
+    def group(
+        self, *args: typing.Any, **kwargs: typing.Any
+    ) -> Callable[[Callable[..., typing.Any]], ClickifyGroup]: ...
 
     @override
-    def group(self, *args: typing.Any, **kwargs: typing.Any) -> Callable[[AnyCallable], click.Group] | ClickifyGroup:
+    def group(self, *args: typing.Any, **kwargs: typing.Any) -> Callable[[AnyCallable], ClickifyGroup] | ClickifyGroup:
         """Wrap click's group to pass through type registry."""
         # NOTE: duplicating click's logic here, since need to
         # pass through registry and invoke custom .command logic
@@ -250,7 +252,7 @@ class ClickifyGroup(click.Group):
             # Only inherit registry when using a ClickifyGroup subclass.
             kwargs["registry"] = self.registry
 
-        def decorator(f: AnyCallable) -> click.Group:
+        def decorator(f: AnyCallable) -> ClickifyGroup:
             # click originally calls the click.group decorator here, which just invokes
             # command.  We need to decorate, and pass registry, so just directly calling
             # self.command

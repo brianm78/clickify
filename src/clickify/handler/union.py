@@ -20,6 +20,8 @@ from clickify.typeutil import unwrap_annotation
 
 
 class UnionParamType[Tout, Tin](click.ParamType[Tout, Tin]):
+    name = "uniontype"
+
     def __init__(self, params: Sequence[click.Parameter]):
         self.params = params
 
@@ -58,6 +60,14 @@ class UnionParamHandler(BaseParamHandler):
 
         args = typing.get_args(ann)
         union_types = [t for t in args if t is not types.NoneType]
+
+        # Special case for T | None = None
+        # For these, we want to use the handler directly, since click allows None as a default
+        # and this will retain any special handling the type might have (eg. is_flag for boolean options)
+        # If the default is NOT None (or unset), we can't do this, as the default isn't guaranteed to be
+        # valid: we instead clear it for the sub-handlers, and re-add it if no value is received
+        if len(union_types) == 1:
+            return self.registry.handle_param(replace(info, annotation=union_types[0]))
 
         # Get handler for each type.
         # Note: If no handler exists for one of the types, we still allow it

@@ -19,6 +19,26 @@ def test_union(app: CLIApplication, runner: CliRunner):
     assert res.output == "1.0 'foo'\n"
 
 
+def test_bool(app: CLIApplication, runner: CliRunner):
+    # Ensure bool options still treated as flags etc.
+
+    @app.command()
+    def cmd(arg: str, flag: bool | None = None):
+        click.echo(flag)
+
+    from b.cli.test import runner_show_failures
+
+    res = runner.invoke(cmd, ["--help"])
+
+    runner_show_failures(res)
+
+    res = runner.invoke(cmd, ["a", "--flag"])
+
+    runner_show_failures(res)
+    assert res.exit_code == 0
+    assert res.output == "True\n"
+
+
 def test_union_reverseorder(app: CLIApplication, runner: CliRunner):
 
     # Will use first type that parses,
